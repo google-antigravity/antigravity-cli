@@ -22,17 +22,26 @@ Antigravity CLI brings the core capabilities of Antigravity 2.0 (multi-step reas
 | **Workflows** | SSH/Remote sessions, keyboard-first | Local workspaces, heavy orchestration |
 | **Agent Engine** | Shared Core Agent Engine | Shared Core Agent Engine |
 
----
+--------
 
 ## Integration
 
-- **Shared Agent Engine**: Both interfaces run on the same core agent engine. Improvements automatically apply to both.
-- **Shared Settings**: Preferences and permissions sync bidirectionally.
-- **Session Export**: Export terminal sessions to the Antigravity 2.0 GUI to continue working.
+• Shared Agent Engine: Both interfaces run on the same core agent engine. Improvements automatically apply to both.        
+• Shared Settings: Preferences and permissions sync bidirectionally.
+• Session Export: Export terminal sessions to the Antigravity 2.0 GUI to continue working.
 
----
+--------
+
+## Community Ecosystem
+
+Explore community-driven libraries and tools built for the Antigravity platform:
+
+• **[Antigravity SDK for C# (.NET)](https://github.com/ssfdre38/antigravity-sdk-csharp)**: A high-fidelity, idiomatic .NET 10 port of the Antigravity SDK, enabling native agent orchestration and custom tool registration for the C# ecosystem.
+
+--------
 
 ## Installation
+
 
 ### macOS / Linux
 ```bash
