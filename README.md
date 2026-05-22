@@ -4,6 +4,7 @@ Antigravity CLI understands your codebase, makes edits with your permission, and
 
 - **Official Docs**: [antigravity.google/docs/cli-overview](https://antigravity.google/docs/cli-overview)
 - **Official Website**: [antigravity.google/product/antigravity-cli](https://antigravity.google/product/antigravity-cli)
+- **Termux Setup**: [Running Antigravity CLI on Termux](docs/termux.md)
 
 ![Antigravity CLI Demo](agy-cli-demo.gif)
 
@@ -38,6 +39,10 @@ Antigravity CLI brings the core capabilities of Antigravity 2.0 (multi-step reas
 ```bash
 curl -fsSL https://antigravity.google/cli/install.sh | bash
 ```
+
+### Android Termux
+
+For Android Termux, see [Running Antigravity CLI on Termux](docs/termux.md).
 
 ### Windows PowerShell
 ```powershell
