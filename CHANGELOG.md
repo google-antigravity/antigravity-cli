@@ -2,6 +2,20 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.0.4
+
+- Added SQLite (.db) conversation support and will be CLI’s conversation format. Fixed a bug when importing SQLite conversation from Antigravity 2.0 to CLI.
+- Added LaTeX math rendering, enabling the CLI to display beautiful mathematical formulas directly in the terminal viewport. Set `AGY_CLI_DISABLE_LATEX` environment variable to turn off LaTeX rendering globally if desired.
+- Decoupled project discovery from local `.antigravitycli` workspace directories. The CLI now stores workspace-to-project mappings in a centralized `~/.gemini/antigravity-cli/cache/projects.json` file, eliminating repository clutter and speeding up project discovery to a single-map lookup.
+- Resolved sporadic and permanent UI hangs caused by a stateful callback streamer race condition during network drops or extremely fast agent steps.
+- Collapses all newlines and consecutive whitespaces in conversation previews and titles before rendering list items, preventing visual UI layout breaks in the picker rows.
+- Styled the separator space between the line number column and diff content to match the text blocks, ensuring background highlights stretch seamlessly across the viewport width in tool outputs and `/diff` details.
+- Resolved inconsistent behavior where selecting skill-derived slash commands from autocompletion suggestions cleared the input without executing. Autocompleted skill commands are now correctly submitted to the backend.
+- Aligned the interactive `/changelog` and `agy changelog` cache paths to both use `antigravity-cli`, and made the caching process synchronous to resolve a race condition where immediate process exit terminated the cache write.
+- Moved VCS detection out of the synchronous CLI startup path to prevent slow initialization.
+- Resolved an issue where exclusion rules and allowlists configured in rules.json were silently ignored, causing the discovery engine to load every .md rule file unconditionally at boot.
+- Parallelized the MCP server initialization sequence, preventing slow or hanging custom MCP servers from blocking independent, fast-starting servers (like local plugins) from loading on startup or configuration reloads.
+
 ## 1.0.3
 
 - Added support for G1 credits in the Antigravity CLI. Users can now utilize G1 credits when their standard quota runs out. This includes a new `UseG1Credits` setting to enable automatic credit usage and a real-time display of remaining credits in the status bar.
