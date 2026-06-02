@@ -1,5 +1,5 @@
 {
-  "version": "1.0.3",
-  "url": "https://github.com/weby-homelab/antigravity-cli/releases/download/v1.0.3/cli_mac_arm64.tar.gz",
-  "sha512": "b2c0d21876ae9b6faf6164b15b573d76e379f643e040e77d528ebafa5d5bd8893cc3c8ebd9a78faf67bd7c676dd4bff0f028f3bbb508e544769d61de3da6b8b1"
+  "version": "1.0.4",
+  "url": "https://github.com/weby-homelab/antigravity-cli/releases/download/v1.0.4/cli_mac_arm64.tar.gz",
+  "sha512": "7f72c8a31da304111468f43023e3c611b9b1035955a9155e5fc0fa770830976e2a23785e15f03041831b044fef2eec23bdbfa2394b39f6cd541d9e449da1c7db"
 }
