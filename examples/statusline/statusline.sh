@@ -82,6 +82,26 @@ NUM_COLOR="${FG_BRIGHT_WHITE}${B}"
   ' 2>/dev/null || printf "idle\n0\n\nfalse\n\n\nfalse\nfalse\n0\n0\n0\n\n\n80\n\n\n\n0\n0\n0\n0\n100\n"
 )"
 
+
+# ─── Separators ──────────────────────────────────────────────────────────────
+DOT="${FG_GRAY} | ${R}"
+
+
+# ─── VCS directly from git (bypasses JSON parsing entirely) ──────────────────
+GIT_DIR="${CWD:-.}"
+VCS_BRANCH=$(git -C "$GIT_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+if [ -n "$VCS_BRANCH" ]; then
+  VCS_TYPE="git"
+  if git -C "$GIT_DIR" status --porcelain 2>/dev/null | grep -q .; then
+    VCS_DIRTY="true"
+  else
+    VCS_DIRTY="false"
+  fi
+else
+  VCS_TYPE=""
+  VCS_DIRTY="false"
+fi
+
 # ─── Computed & Formatted Values ─────────────────────────────────────────────
 PCT_FMT=$(LC_NUMERIC=C printf "%.1f" "$USED_PCT")
 PCT_INT=${USED_PCT%.*}; PCT_INT=${PCT_INT:-0}
@@ -121,133 +141,137 @@ shorten_path() {
 }
 CWD_SHORT=$(shorten_path "$CWD")
 
-# ─── State Indicator (No background colors) ──────────────────────────────────
+# ─── Strip ANSI escapes to measure visible length ────────────────────────────
+visible_len() {
+  # Strips ESC sequences and counts remaining bytes
+  printf '%s' "$(echo -e "$1" | sed 's/\x1b\[[0-9;]*m//g')" | wc -m
+}
+
+# ─── State Indicator ─────────────────────────────────────────────────────────
 case "$STATE" in
-  idle)     S="${FG_BRIGHT_GREEN}${B}● READY${R}" ;;
-  thinking) S="${FG_BRIGHT_YELLOW}${B}◆ THINKING${R}" ;;
-  working)  S="${FG_BRIGHT_CYAN}${B}⚙ WORKING${R}" ;;
-  tool_use) S="${FG_BRIGHT_MAGENTA}${B}🔧 TOOL${R}" ;;
-  *)        S="${FG_WHITE}${B}⏳ $(echo "$STATE" | tr '[:lower:]' '[:upper:]')${R}" ;;
+  idle)     S="${FG_BRIGHT_GREEN}${B}  READY${R}" ;;
+  thinking) S="${FG_BRIGHT_YELLOW}${B} 󰟷 THINKING${R}" ;;
+  working)  S="${FG_BRIGHT_CYAN}${B}  WORKING${R}" ;;
+  tool_use) S="${FG_BRIGHT_MAGENTA}${B}  TOOL${R}" ;;
+  *)        S="${FG_WHITE}${B}  $(echo "$STATE" | tr '[:lower:]' '[:upper:]')${R}" ;;
 esac
 
-# ─── VCS Branch & Type ───────────────────────────────────────────────────────
+# ─── VCS Branch & Type (fixed: color applied correctly in both branches) ─────
 V=""
 if [ -n "$VCS_BRANCH" ]; then
   VCS_LABEL="${VCS_TYPE:-git}"
   if [ "$VCS_DIRTY" = "true" ]; then
-    V="${FG_GRAY} ╱ ${FG_GRAY}${VCS_LABEL}:${FG_BRIGHT_RED}${VCS_BRANCH}${FG_BRIGHT_YELLOW}*${R}"
+    V="${DOT}${R}${FG_BRIGHT_RED} ${VCS_BRANCH}${FG_BRIGHT_YELLOW}*${R}"
   else
-    V="${FG_GRAY} ╱ ${FG_GRAY}${VCS_LABEL}:${FG_BRIGHT_BLUE}${VCS_BRANCH}${R}"
+    V="${DOT}${R}${FG_BRIGHT_BLUE} ${VCS_BRANCH}${R}"
   fi
 fi
 
 # ─── Model ───────────────────────────────────────────────────────────────────
-# Fallback to model ID if display name is empty
-MODEL_DISP="${MODEL_NAME:-$MODEL_ID}"
+MODEL_DISP=" ${R}${MODEL_NAME:-$MODEL_ID}"
 M=""
 if [ -n "$MODEL_DISP" ]; then
-  M="${FG_GRAY} ╱ ${FG_BRIGHT_MAGENTA}${I}${MODEL_DISP}${R}"
+  M="${FG_GRAY}${DOT}${FG_BRIGHT_MAGENTA}${I}${MODEL_DISP}${R}"
 fi
 
 # ─── Sandbox Badge ───────────────────────────────────────────────────────────
 if [ "$SANDBOX" = "true" ]; then
   if [ "$SANDBOX_NET" = "true" ]; then
-    SB="${FG_GRAY}🛡️ sandbox ${FG_BRIGHT_GREEN}${B}ON (net)${R}"
+    SB="${FG_GREEN}󰒙 ${FG_BRIGHT_GREEN}${B}ON (net)${R}"
   else
-    SB="${FG_GRAY}🛡️ sandbox ${FG_BRIGHT_GREEN}${B}ON (no-net)${R}"
+    SB="${FG_GREEN}󰴴 ${FG_BRIGHT_GREEN}${B}ON (no-net)${R}"
   fi
 else
-  SB="${FG_GRAY}🛡️ sandbox off${R}"
+  SB="${FG_RED}󰦜 ${FG_BRIGHT_RED}${B}OFF${R}"
 fi
 
-# ─── Context Bar (15 segments, fine-grain Unicode) ────────────────────────────
-BAR_LEN=15
+# ─── Context Bar (20 segments) ───────────────────────────────────────────────
+BAR_LEN=20
 FILLED=$((PCT_INT * BAR_LEN / 100))
 REMAINDER=$(( (PCT_INT * BAR_LEN) % 100 ))
 
-if [ "$PCT_INT" -ge 90 ]; then
-  BAR_COLOR="$FG_BRIGHT_RED"
-elif [ "$PCT_INT" -ge 60 ]; then
-  BAR_COLOR="$FG_BRIGHT_YELLOW"
-else
-  BAR_COLOR="$FG_BRIGHT_WHITE"
+if   [ "$PCT_INT" -ge 90 ]; then FILL_COLOR="$FG_BRIGHT_RED"
+elif [ "$PCT_INT" -ge 60 ]; then FILL_COLOR="$FG_BRIGHT_YELLOW"
+else                              FILL_COLOR="$FG_YELLOW"
 fi
 
 BAR=""
 for ((i = 0; i < BAR_LEN; i++)); do
-  if [ "$i" -lt "$FILLED" ]; then
-    BAR="${BAR}█"
+  if   [ "$i" -lt "$FILLED" ]; then
+    BAR="${BAR}${FILL_COLOR}█${R}"
   elif [ "$i" -eq "$FILLED" ]; then
-    if [ "$REMAINDER" -ge 75 ]; then
-      BAR="${BAR}▓"
-    elif [ "$REMAINDER" -ge 50 ]; then
-      BAR="${BAR}▒"
-    elif [ "$REMAINDER" -ge 25 ]; then
-      BAR="${BAR}░"
-    else
-      BAR="${BAR}·"
+    if   [ "$REMAINDER" -ge 75 ]; then BAR="${BAR}${FILL_COLOR}▓${R}${FG_GRAY}"
+    elif [ "$REMAINDER" -ge 50 ]; then BAR="${BAR}${FILL_COLOR}▒${R}${FG_GRAY}"
+    else                               BAR="${BAR}${FILL_COLOR}░${R}${FG_GRAY}"
     fi
-  else
-    BAR="${BAR}·"
+  else BAR="${BAR}${FG_GRAY}░${R}"
   fi
 done
 
 # ─── Stats & Metadata formatting ─────────────────────────────────────────────
-CTX_BAR="${FG_GRAY}ctx ${BAR_COLOR}${BAR} ${NUM_COLOR}${PCT_FMT}%${R}"
-ART_FMT="${FG_GRAY}📦 ${NUM_COLOR}${ARTIFACTS}${R}"
-SUB_FMT="${FG_GRAY}🤖 ${NUM_COLOR}${SUBAGENTS}${R}"
-BG_FMT="${FG_GRAY}⏳ ${NUM_COLOR}${BG_TASKS}${R}"
+CTX_BAR="${FG_YELLOW}󱍏  ${R}${BAR} ${NUM_COLOR}${PCT_FMT}%${R}"
+ART_FMT="${FG_BLUE} ${NUM_COLOR}${ARTIFACTS}${R}"
+SUB_FMT="${FG_CYAN}󱙺 ${NUM_COLOR}${SUBAGENTS}${R}"
+BG_FMT="${FG_MAGENTA} ${NUM_COLOR}${BG_TASKS}${R}"
 
-# ─── New elements (CWD, Conversation ID, Token counts) ──────────────────────
 DIR_FMT=""
 if [ -n "$CWD_SHORT" ]; then
-  DIR_FMT="${FG_GRAY} ╱ 📂 ${CWD_SHORT}${R}"
+  DIR_FMT="${FG_GRAY}${DOT}${FG_CYAN} ${R}${CWD_SHORT}${R}"
 fi
 
 CONV_FMT=""
 if [ -n "$CONV_ID" ]; then
-  CONV_FMT="${FG_GRAY} ╱ id:${CONV_ID:0:8}${R}"
+  CONV_FMT="${FG_GRAY}${DOT}${FG_GRAY}󰍪 ${CONV_ID:0:8}${R}"
 fi
 
-# Token stats detailed vs simple
 TOK_DETAILS=""
 if [ "$CTX_USED" -gt 0 ] 2>/dev/null; then
   TOK_DETAILS=" (${CTX_USED_FMT}/${CTX_LIMIT_FMT})"
 fi
 
-# ─── Separators ──────────────────────────────────────────────────────────────
-DOT="${FG_GRAY} · ${R}"
+# ─── Right-align helper ──────────────────────────────────────────────────────
+# Prints LINE1 left-aligned and LINE2 right-aligned on the same terminal row.
+print_right_aligned() {
+  local left="$1"
+  local right="$2"
+  local total_cols="$3"
 
-# ─── Output Assembly ──────────────────────────────────────────────────────────
-if [ "$COLS" -ge 120 ]; then
-  # Wide Layout: One line containing state, model, vcs, directory, conversation id
-  # and bottom bar metrics inline.
-  LINE1="${S}${M}${V}${DIR_FMT}${CONV_FMT}"
-  
-  # Detailed tokens in wide layout: (used/limit · in/out)
+  local left_vis right_vis pad
+  left_vis=$(visible_len "$left")
+  right_vis=$(visible_len "$right")
+
+  # How many spaces needed between left and right
+  pad=$(( total_cols - left_vis - right_vis ))
+  [ "$pad" -lt 1 ] && pad=1
+
+  printf "%b%*s%b\n" "$left" "$pad" "" "$right"
+}
+
+# ─── Output Assembly ─────────────────────────────────────────────────────────
+if [ "$COLS" -ge 180 ]; then
+  LINE1="${S}${M}${DIR_FMT}${V}${CONV_FMT}"
+
   if [ "$CTX_USED" -gt 0 ] 2>/dev/null; then
-    TOK_DETAILS=" (${CTX_USED_FMT}/${CTX_LIMIT_FMT} · ${INPUT_TOK_FMT} in/${OUTPUT_TOK_FMT} out)"
+    TOK_DETAILS=" (${CTX_USED_FMT}/${CTX_LIMIT_FMT})${DOT}${FG_YELLOW} ${R} (${INPUT_TOK_FMT} in/${OUTPUT_TOK_FMT} out)"
   fi
-  
-  LINE2=" ${CTX_BAR}${TOK_DETAILS}${DOT}${ART_FMT}${DOT}${SUB_FMT}${DOT}${BG_FMT}${DOT}${SB}"
-  echo -e "${LINE1}${FG_GRAY}  │  ${R}${LINE2}"
 
-elif [ "$COLS" -ge 80 ]; then
+  LINE2="${ART_FMT}${DOT}${SUB_FMT}${DOT}${BG_FMT}${DOT}${SB}${DOT}${CTX_BAR}${TOK_DETAILS}"
+  print_right_aligned "$LINE1" "$LINE2" "$COLS"
+
+elif [ "$COLS" -ge 90 ]; then
   # Medium Layout: Two-line layout with border
-  LINE1="${S}${M}${V}${DIR_FMT}"
+  LINE1="${S}${M}${DIR_FMT}${V}"
   LINE2=" ${CTX_BAR}${TOK_DETAILS}${DOT}${ART_FMT}${DOT}${SUB_FMT}${DOT}${BG_FMT}${DOT}${SB}"
-  
-  echo -e "${FG_GRAY}╭─${R} ${LINE1}"
+
+  echo -e "${FG_GRAY}╭─${R}${LINE1}"
   echo -e "${FG_GRAY}╰─${R}${LINE2}"
 
 else
-  # Narrow Layout: Compact two-line, minimal layout
-  # Shorten model display for narrow screens
   M_SHORT=""
   if [ -n "$MODEL_DISP" ]; then
-    M_SHORT="${FG_GRAY} ╱ ${FG_BRIGHT_MAGENTA}${MODEL_DISP:0:12}${R}"
+    M_SHORT="${FG_GRAY} ╱ ${FG_BRIGHT_MAGENTA}${MODEL_DISP}${R}"
   fi
-  
+
   echo -e "${S}${M_SHORT}"
   echo -e "${CTX_BAR}${DOT}${BG_FMT}"
 fi
