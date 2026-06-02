@@ -74,6 +74,20 @@ $outputTokens = if ($data.context_window -and $null -ne $data.context_window.tot
 $ctxLimit = if ($data.context_window -and $null -ne $data.context_window.context_window_size) { $data.context_window.context_window_size } else { 0 }
 $ctxUsed = $inputTokens + $outputTokens
 
+# ─── VCS directly from git (bypasses JSON parsing entirely for accuracy) ──────
+try {
+    $gitDir = if ($cwd) { $cwd } else { "." }
+    $branch = & git -C "$gitDir" rev-parse --abbrev-ref HEAD 2>$null
+    if ($branch) {
+        $vcsBranch = $branch.Trim()
+        $vcsType = "git"
+        $status = & git -C "$gitDir" status --porcelain 2>$null
+        $vcsDirty = if ($status) { $true } else { $false }
+    }
+} catch {
+    # Ignore git errors
+}
+
 # ─── Helper Functions ────────────────────────────────────────────────────────
 function Get-HumanFormat {
     param ($num)
@@ -108,25 +122,43 @@ function Get-ShortenPath {
     return $path
 }
 
+function Get-VisibleLen {
+    param ($str)
+    $stripped = $str -replace '\x1b\[[0-9;]*m', ''
+    return $stripped.Length
+}
+
+function Write-RightAligned {
+    param ($left, $right, $totalCols)
+    $leftVis = Get-VisibleLen $left
+    $rightVis = Get-VisibleLen $right
+    $pad = $totalCols - $leftVis - $rightVis
+    if ($pad -lt 1) { $pad = 1 }
+    $spaces = " " * $pad
+    Write-Output "${left}${spaces}${right}"
+}
+
 $cwdShort = Get-ShortenPath $cwd
 
 # ─── State Indicator ──────────────────────────────────────────────────────────
 switch ($state) {
-    "idle"     { $S = "${FG_BRIGHT_GREEN}${B}● READY${R}" }
-    "thinking" { $S = "${FG_BRIGHT_YELLOW}${B}◆ THINKING${R}" }
-    "working"  { $S = "${FG_BRIGHT_CYAN}${B}⚙ WORKING${R}" }
-    "tool_use" { $S = "${FG_BRIGHT_MAGENTA}${B}🔧 TOOL${R}" }
-    Default    { $S = "${FG_WHITE}${B}⏳ $($state.ToUpper())${R}" }
+    "idle"     { $S = "${FG_BRIGHT_GREEN}${B}  READY${R}" }
+    "thinking" { $S = "${FG_BRIGHT_YELLOW}${B} 󰟷 THINKING${R}" }
+    "working"  { $S = "${FG_BRIGHT_CYAN}${B}  WORKING${R}" }
+    "tool_use" { $S = "${FG_BRIGHT_MAGENTA}${B}  TOOL${R}" }
+    Default    { $S = "${FG_WHITE}${B}  $($state.ToUpper())${R}" }
 }
+
+# ─── Separators ──────────────────────────────────────────────────────────────
+$DOT = "${FG_GRAY} | ${R}"
 
 # ─── VCS Branch & Type ───────────────────────────────────────────────────────
 $V = ""
 if (-not [string]::IsNullOrEmpty($vcsBranch)) {
-    $vcsLabel = if (-not [string]::IsNullOrEmpty($vcsType)) { $vcsType } else { "git" }
     if ($vcsDirty -eq $true -or $vcsDirty -eq "true") {
-        $V = "${FG_GRAY} ╱ ${FG_GRAY}${vcsLabel}:${FG_BRIGHT_RED}${vcsBranch}${FG_BRIGHT_YELLOW}*${R}"
+        $V = "${DOT}${R}${FG_BRIGHT_RED} ${vcsBranch}${FG_BRIGHT_YELLOW}*${R}"
     } else {
-        $V = "${FG_GRAY} ╱ ${FG_GRAY}${vcsLabel}:${FG_BRIGHT_BLUE}${vcsBranch}${R}"
+        $V = "${DOT}${R}${FG_BRIGHT_BLUE} ${vcsBranch}${R}"
     }
 }
 
@@ -134,27 +166,27 @@ if (-not [string]::IsNullOrEmpty($vcsBranch)) {
 $modelDisp = if (-not [string]::IsNullOrEmpty($modelName)) { $modelName } else { $modelId }
 $M = ""
 if (-not [string]::IsNullOrEmpty($modelDisp)) {
-    $M = "${FG_GRAY} ╱ ${FG_BRIGHT_MAGENTA}${I}${modelDisp}${R}"
+    $M = "${FG_GRAY}${DOT}${FG_BRIGHT_MAGENTA}${I} ${R}${modelDisp}${R}"
 }
 
 # ─── Sandbox Badge ───────────────────────────────────────────────────────────
 if ($sandboxEnabled -eq $true -or $sandboxEnabled -eq "true") {
     if ($sandboxNet -eq $true -or $sandboxNet -eq "true") {
-        $SB = "${FG_GRAY}🛡️ sandbox ${FG_BRIGHT_GREEN}${B}ON (net)${R}"
+        $SB = "${FG_GREEN}󰒙 ${FG_BRIGHT_GREEN}${B}ON (net)${R}"
     } else {
-        $SB = "${FG_GRAY}🛡️ sandbox ${FG_BRIGHT_GREEN}${B}ON (no-net)${R}"
+        $SB = "${FG_GREEN}󰴴 ${FG_BRIGHT_GREEN}${B}ON (no-net)${R}"
     }
 } else {
-    $SB = "${FG_GRAY}🛡️ sandbox off${R}"
+    $SB = "${FG_RED}󰦜 ${FG_BRIGHT_RED}${B}OFF${R}"
 }
 
-# ─── Context Bar ─────────────────────────────────────────────────────────────
-$BAR_LEN = 15
+# ─── Context Bar (20 segments) ───────────────────────────────────────────────
+$BAR_LEN = 20
 $pctInt = [int][Math]::Floor($usedPct)
 $filled = [int][Math]::Floor($pctInt * $BAR_LEN / 100)
 $remainder = ($pctInt * $BAR_LEN) % 100
 
-$barColor = $FG_BRIGHT_WHITE
+$barColor = $FG_YELLOW
 if ($pctInt -ge 90) {
     $barColor = $FG_BRIGHT_RED
 } elseif ($pctInt -ge 60) {
@@ -182,20 +214,20 @@ for ($i = 0; $i -lt $BAR_LEN; $i++) {
 
 # ─── Stats Formatting ────────────────────────────────────────────────────────
 $pctFmt = $usedPct.ToString("0.0", [System.Globalization.CultureInfo]::InvariantCulture)
-$CTX_BAR = "${FG_GRAY}ctx ${barColor}${BAR} ${NUM_COLOR}${pctFmt}%${R}"
-$ART_FMT = "${FG_GRAY}📦 ${NUM_COLOR}${artifactCount}${R}"
-$SUB_FMT = "${FG_GRAY}🤖 ${NUM_COLOR}${subagentsCount}${R}"
-$BG_FMT = "${FG_GRAY}⏳ ${NUM_COLOR}${taskCount}${R}"
+$CTX_BAR = "${FG_YELLOW}󱍏  ${R}${barColor}${BAR}${R} ${NUM_COLOR}${pctFmt}%${R}"
+$ART_FMT = "${FG_BLUE} ${NUM_COLOR}${artifactCount}${R}"
+$SUB_FMT = "${FG_CYAN}󱙺 ${NUM_COLOR}${subagentsCount}${R}"
+$BG_FMT = "${FG_MAGENTA} ${NUM_COLOR}${taskCount}${R}"
 
 $DIR_FMT = ""
 if (-not [string]::IsNullOrEmpty($cwdShort)) {
-    $DIR_FMT = "${FG_GRAY} ╱ 📂 ${cwdShort}${R}"
+    $DIR_FMT = "${FG_GRAY}${DOT}${FG_CYAN} ${R}${cwdShort}${R}"
 }
 
 $CONV_FMT = ""
 if (-not [string]::IsNullOrEmpty($convId)) {
     $subConvId = if ($convId.Length -gt 8) { $convId.Substring(0, 8) } else { $convId }
-    $CONV_FMT = "${FG_GRAY} ╱ id:${subConvId}${R}"
+    $CONV_FMT = "${FG_GRAY}${DOT}${FG_GRAY}󰍪 ${subConvId}${R}"
 }
 
 $tokDetails = ""
@@ -205,24 +237,22 @@ if ($ctxUsed -gt 0) {
     $tokDetails = " (${ctxUsedFmt}/${ctxLimitFmt})"
 }
 
-$DOT = "${FG_GRAY} · ${R}"
-
 # ─── Output Assembly ──────────────────────────────────────────────────────────
-if ($cols -ge 120) {
-    $line1 = "${S}${M}${V}${DIR_FMT}${CONV_FMT}"
+if ($cols -ge 180) {
+    $line1 = "${S}${M}${DIR_FMT}${V}${CONV_FMT}"
     if ($ctxUsed -gt 0) {
         $ctxUsedFmt = Get-HumanFormat $ctxUsed
         $ctxLimitFmt = Get-HumanFormat $ctxLimit
         $inputTokFmt = Get-HumanFormat $inputTokens
         $outputTokFmt = Get-HumanFormat $outputTokens
-        $tokDetails = " (${ctxUsedFmt}/${ctxLimitFmt} · ${inputTokFmt} in/${outputTokFmt} out)"
+        $tokDetails = " (${ctxUsedFmt}/${ctxLimitFmt})${DOT}${FG_YELLOW} ${R} (${inputTokFmt} in/${outputTokFmt} out)"
     }
+    $line2 = "${ART_FMT}${DOT}${SUB_FMT}${DOT}${BG_FMT}${DOT}${SB}${DOT}${CTX_BAR}${tokDetails}"
+    Write-RightAligned -left $line1 -right $line2 -totalCols $cols
+} elseif ($cols -ge 90) {
+    $line1 = "${S}${M}${DIR_FMT}${V}"
     $line2 = " ${CTX_BAR}${tokDetails}${DOT}${ART_FMT}${DOT}${SUB_FMT}${DOT}${BG_FMT}${DOT}${SB}"
-    Write-Output "${line1}${FG_GRAY}  │  ${R}${line2}"
-} elseif ($cols -ge 80) {
-    $line1 = "${S}${M}${V}${DIR_FMT}"
-    $line2 = " ${CTX_BAR}${tokDetails}${DOT}${ART_FMT}${DOT}${SUB_FMT}${DOT}${BG_FMT}${DOT}${SB}"
-    Write-Output "${FG_GRAY}╭─${R} ${line1}"
+    Write-Output "${FG_GRAY}╭─${R}${line1}"
     Write-Output "${FG_GRAY}╰─${R}${line2}"
 } else {
     $mShort = ""
