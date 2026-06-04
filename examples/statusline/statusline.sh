@@ -131,6 +131,22 @@ case "$STATE" in
 esac
 
 # ─── VCS Branch & Type ───────────────────────────────────────────────────────
+# Fallback to local git query if VCS_BRANCH is not provided in the JSON payload
+if [ -z "$VCS_BRANCH" ]; then
+  GIT_DIR="${CWD:-.}"
+  if git -C "$GIT_DIR" rev-parse --is-inside-work-tree &>/dev/null; then
+    VCS_BRANCH=$(git -C "$GIT_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+    VCS_TYPE="git"
+    if [ -n "$VCS_BRANCH" ]; then
+      if git -C "$GIT_DIR" status --porcelain 2>/dev/null | grep -q .; then
+        VCS_DIRTY="true"
+      else
+        VCS_DIRTY="false"
+      fi
+    fi
+  fi
+fi
+
 V=""
 if [ -n "$VCS_BRANCH" ]; then
   VCS_LABEL="${VCS_TYPE:-git}"

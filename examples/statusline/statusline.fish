@@ -109,6 +109,25 @@ switch $STATE
 end
 
 # VCS Branch & Type
+# Fallback to local git query if VCS_BRANCH is not provided in the JSON payload
+if test -z "$VCS_BRANCH"
+    set -l git_dir "."
+    if test -n "$CWD"
+        set git_dir $CWD
+    end
+    if git -C "$git_dir" rev-parse --is-inside-work-tree >/dev/null 2>&1
+        set VCS_BRANCH (git -C "$git_dir" rev-parse --abbrev-ref HEAD 2>/dev/null)
+        set VCS_TYPE "git"
+        if test -n "$VCS_BRANCH"
+            if git -C "$git_dir" status --porcelain 2>/dev/null | string match -q -r '.'
+                set VCS_DIRTY "true"
+            else
+                set VCS_DIRTY "false"
+            end
+        end
+    end
+end
+
 set -l V ""
 if test -n "$VCS_BRANCH"
     set -l vcs_label "git"

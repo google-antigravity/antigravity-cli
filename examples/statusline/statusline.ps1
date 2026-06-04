@@ -120,6 +120,22 @@ switch ($state) {
 }
 
 # ─── VCS Branch & Type ───────────────────────────────────────────────────────
+# Fallback to local git query if VCS_BRANCH is not provided in the JSON payload
+if ([string]::IsNullOrEmpty($vcsBranch)) {
+    $gitDir = if (-not [string]::IsNullOrEmpty($cwd)) { $cwd } else { "." }
+    # Run git commands and capture output safely
+    $isWorkTree = git -C $gitDir rev-parse --is-inside-work-tree 2>$null
+    if ($isWorkTree -eq "true") {
+        $branch = (git -C $gitDir rev-parse --abbrev-ref HEAD 2>$null).Trim()
+        if (-not [string]::IsNullOrEmpty($branch)) {
+            $vcsBranch = $branch
+            $vcsType = "git"
+            $status = (git -C $gitDir status --porcelain 2>$null).Trim()
+            $vcsDirty = if (-not [string]::IsNullOrEmpty($status)) { "true" } else { "false" }
+        }
+    }
+}
+
 $V = ""
 if (-not [string]::IsNullOrEmpty($vcsBranch)) {
     $vcsLabel = if (-not [string]::IsNullOrEmpty($vcsType)) { $vcsType } else { "git" }
