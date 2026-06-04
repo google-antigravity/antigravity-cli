@@ -2,6 +2,19 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.0.5
+
+- Added `--model` to set model when launching CLI. Also a new `models` subcommand to list available models.
+- Added `/permissions` command which allows to add/edit/remove permissions rules for each of the three configs above directly inside the CLI.
+- Allowed opening the Artifact Review panel (shortcut `ctrl+r`) while answering pending questions or tool permission confirmations, preserving your current progress when toggling back.
+- Fixed a bug that metadata was written in the current directory as opposed to `~/.gemini/antigravity-cli/cache` when running using `-p`.
+- Improved statusline layout by merging active tip and artifact status on a single line and truncating with ellipsis on narrow terminals to prevent collisions.
+- Improved customization support by allowing directories in the customization manager to be passed as workspace directories, enabling correct trajectory metadata population and `/add-dir` support.
+- Added support for `url` in `mcp_config.json` to configure MCP servers directly via a URL.
+- Improved `/resume` performance: optimized lazy loading of conversation details, filtered out empty conversations, and added support for scanning SQLite database files (`.db` and `.db-wal`).
+- Improved autocomplete: tab completion for slash commands now resolves to the matched alias instead of the primary command name (e.g., `/se` autocompletes to `/settings` instead of `/config`).
+- Integrated the permissioning system with the rest of Antigravity. CLI permissions now merges project level permissions, permissions from user settings shared with Antigravity, and permissions from the CLI `settings.json`.
+
 ## 1.0.4
 
 - Added SQLite (.db) conversation support and will be CLI’s conversation format. Fixed a bug when importing SQLite conversation from Antigravity 2.0 to CLI.
