@@ -99,8 +99,8 @@ session default  →  define_subagent.Model  →  invoke_subagent.Model
 ## Example Usage
 
 ```jsonc
-// Orchestrator (running on gemini-2.5-pro) spawns two concurrent subagents:
-// one cheap and fast, one with extended thinking.
+// Orchestrator (running on Gemini 3.1 Pro) spawns two concurrent subagents:
+// one fast and cheap, one with extended thinking for security analysis.
 {
   "Subagents": [
     {
@@ -108,14 +108,14 @@ session default  →  define_subagent.Model  →  invoke_subagent.Model
       "Role": "Quick File Scanner",
       "Prompt": "List all Python files that import the requests library",
       "Workspace": "inherit",
-      "Model": "gemini-2.0-flash"
+      "Model": "Gemini 3.5 Flash (Low)"
     },
     {
       "TypeName": "self",
       "Role": "Security Reviewer",
       "Prompt": "Perform an adversarial OWASP-style security review of the auth module",
       "Workspace": "branch",
-      "Model": "claude-sonnet-4-6-thinking"
+      "Model": "Claude Sonnet 4.6 (Thinking)"
     }
   ]
 }
