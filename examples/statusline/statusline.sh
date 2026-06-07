@@ -87,6 +87,22 @@ if [ -n "$MODEL" ]; then
   M="${FG_GRAY} ╱ ${FG_BRIGHT_MAGENTA}${I}${MODEL}${R}"
 fi
 
+# ─── Sandbox State (workaround for unpopulated payload field) ────────────────
+# As of agy 1.0.6, `agy --sandbox` enables the terminal sandbox but does NOT set
+# .sandbox.enabled in the statusLine payload (it stays false), so the badge below
+# would always read "off". The flag is also not exported to this process's env,
+# and the process is reparented to init, so neither env nor the parent command
+# line can be inspected. The only reliable signal is the session log, which
+# cli.log symlinks to ("--sandbox: enabling terminal sandbox for this session").
+# .sandbox.enabled remains the primary source, so this self-corrects once the
+# payload field is populated upstream. See issue #321.
+if [ "$SANDBOX" != "true" ]; then
+  SANDBOX_LOG="$HOME/.gemini/antigravity-cli/cli.log"
+  if [ -r "$SANDBOX_LOG" ] && grep -q 'enabling terminal sandbox' "$SANDBOX_LOG" 2>/dev/null; then
+    SANDBOX="true"
+  fi
+fi
+
 # ─── Sandbox Badge ───────────────────────────────────────────────────────────
 if [ "$SANDBOX" = "true" ]; then
   SB="${FG_GRAY}sandbox ${FG_BRIGHT_GREEN}${B}ON${R}"
