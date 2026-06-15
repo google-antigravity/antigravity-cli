@@ -257,15 +257,15 @@ function Get-ResetTimeFmt {
     $mins = [Math]::Floor(($rem % 3600) / 60)
 
     if ($days -gt 0) {
-        if ($hours -gt 0) { return " in ${days}d ${hours}h" }
-        return " in ${days}d"
+        if ($hours -gt 0) { return "${days}d ${hours}h" }
+        return "${days}d"
     } elseif ($hours -gt 0) {
-        if ($mins -gt 0) { return " in ${hours}h ${mins}m" }
-        return " in ${hours}h"
+        if ($mins -gt 0) { return "${hours}h ${mins}m" }
+        return "${hours}h"
     } elseif ($mins -gt 0) {
-        return " in ${mins}m"
+        return "${mins}m"
     } else {
-        return " in <1m"
+        return "<1m"
     }
 }
 
@@ -273,7 +273,7 @@ function Get-QuotaBar {
     param ($val, $label, $barColor, $resetSec)
     if ($null -eq $val -or $val -lt 0) {
         $emptyBar = "░" * 20
-        return "${FG_GRAY}${emptyBar} N/A (${label})${R}"
+        return "${FG_GRAY}| ${R}${FG_BRIGHT_WHITE}${B}${label}${R} ${FG_GRAY}${emptyBar} N/A${R}"
     }
     $color = $FG_BRIGHT_GREEN
     if ($val -lt 20) {
@@ -335,9 +335,10 @@ function Get-QuotaBar {
 
     $resetStr = ""
     if ($null -ne $resetSec -and $resetSec -gt 0) {
-        $resetStr = Get-ResetTimeFmt -sec $resetSec
+        $timeFmt = Get-ResetTimeFmt -sec $resetSec
+        $resetStr = " ⌛️ ${timeFmt}"
     }
-    return "${coloredBar} ${color}${valFmt}%${R} ${FG_GRAY}(${label}${resetStr})${R}"
+    return "${FG_GRAY}| ${R}${FG_BRIGHT_WHITE}${B}${label}${R} ${coloredBar} ${color}${valFmt}%${R}${resetStr}"
 }
 
 $isGemini = $modelDisp.ToLower().Contains("gemini")
@@ -357,7 +358,7 @@ $QUOTA_FMT = ""
 if ($q5h -ge 0 -or $qWk -ge 0) {
     $fmt5h = Get-QuotaBar -val $q5h -label "5H" -barColor $FG_BRIGHT_CYAN -resetSec $q5hR
     $fmtWk = Get-QuotaBar -val $qWk -label "7D" -barColor $FG_BRIGHT_MAGENTA -resetSec $qWkR
-    $QUOTA_FMT = "${fmt5h}  ${fmtWk}"
+    $QUOTA_FMT = "${fmt5h} ${fmtWk}"
 }
 
 # ─── Output Assembly ──────────────────────────────────────────────────────────
