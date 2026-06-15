@@ -257,20 +257,20 @@ function format_reset_time -a sec
 
     if test "$days" -gt 0
         if test "$hours" -gt 0
-            echo -n " in "$days"d "$hours"h"
+            echo -n "$days"d" "$hours"h"
         else
-            echo -n " in "$days"d"
+            echo -n "$days"d"
         fi
     elif test "$hours" -gt 0
         if test "$mins" -gt 0
-            echo -n " in "$hours"h "$mins"m"
+            echo -n "$hours"h" "$mins"m"
         else
-            echo -n " in "$hours"h"
+            echo -n "$hours"h"
         fi
     elif test "$mins" -gt 0
-        echo -n " in "$mins"m"
+        echo -n "$mins"m"
     else
-        echo -n " in <1m"
+        echo -n "<1m"
     fi
 end
 
@@ -280,7 +280,7 @@ function make_quota_bar -a val label bar_color reset_sec R FG_GRAY FG_BRIGHT_GRE
         for i in (seq 1 20)
             set bar "$bar░"
         end
-        echo -n "$FG_GRAY$bar N/A ($label)$R"
+        echo -n "$FG_GRAY| $R$FG_BRIGHT_WHITE$B$label$R $FG_GRAY$bar N/A$R"
         return
     end
 
@@ -321,9 +321,10 @@ function make_quota_bar -a val label bar_color reset_sec R FG_GRAY FG_BRIGHT_GRE
 
     set -l reset_str ""
     if test -n "$reset_sec"; and test "$reset_sec" -gt 0
-        set reset_str (format_reset_time $reset_sec)
+        set -l time_fmt (format_reset_time $reset_sec)
+        set reset_str " ⌛️ $time_fmt"
     end
-    echo -n "$bar $fill_color$val%$R $FG_GRAY($label$reset_str)$R"
+    echo -n "$FG_GRAY| $R$FG_BRIGHT_WHITE$B$label$R $bar $fill_color$val%$R$reset_str"
 end
 
 set -l MODEL_LOWER (string lower "$MODEL_DISP")
@@ -347,7 +348,7 @@ set -l QUOTA_FMT ""
 if test -n "$Q_5H"; or test -n "$Q_WK"
     set -l fmt_5h (make_quota_bar $Q_5H "5H" "$FG_BRIGHT_CYAN" "$Q_5H_R" "$R" "$FG_GRAY" "$FG_BRIGHT_GREEN" "$FG_BRIGHT_YELLOW" "$FG_BRIGHT_RED")
     set -l fmt_wk (make_quota_bar $Q_WK "7D" "$FG_BRIGHT_MAGENTA" "$Q_WK_R" "$R" "$FG_GRAY" "$FG_BRIGHT_GREEN" "$FG_BRIGHT_YELLOW" "$FG_BRIGHT_RED")
-    set QUOTA_FMT "$fmt_5h  $fmt_wk"
+    set QUOTA_FMT "$fmt_5h $fmt_wk"
 end
 
 # Output Assembly

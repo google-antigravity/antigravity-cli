@@ -247,19 +247,19 @@ function formatResetTime(sec) {
   const mins = Math.floor((rem % 3600) / 60);
 
   if (days > 0) {
-    return hours > 0 ? ` in ${days}d ${hours}h` : ` in ${days}d`;
+    return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
   } else if (hours > 0) {
-    return mins > 0 ? ` in ${hours}h ${mins}m` : ` in ${hours}h`;
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   } else if (mins > 0) {
-    return ` in ${mins}m`;
+    return `${mins}m`;
   } else {
-    return " in <1m";
+    return "<1m";
   }
 }
 
 function makeQuotaBar(val, label, barColor, resetSec) {
   if (val === undefined || val === null || val < 0) {
-    return `${FG_GRAY}${"░".repeat(20)} N/A (${label})${R}`;
+    return `${FG_GRAY}| ${R}${FG_BRIGHT_WHITE}${B}${label}${R} ${FG_GRAY}${"░".repeat(20)} N/A${R}`;
   }
   let color = FG_BRIGHT_GREEN;
   if (val < 20) {
@@ -315,8 +315,8 @@ function makeQuotaBar(val, label, barColor, resetSec) {
   }
 
   const valFmt = val.toFixed(1).replace(/\.0$/, '');
-  const resetStr = resetSec > 0 ? formatResetTime(resetSec) : "";
-  return `${coloredBar} ${color}${valFmt}%${R} ${FG_GRAY}(${label}${resetStr})${R}`;
+  const resetStr = resetSec > 0 ? ` ⌛️ ${formatResetTime(resetSec)}` : "";
+  return `${FG_GRAY}| ${R}${FG_BRIGHT_WHITE}${B}${label}${R} ${coloredBar} ${color}${valFmt}%${R}${resetStr}`;
 }
 
 const isGemini = (modelDisp || "").toLowerCase().includes("gemini");
@@ -325,7 +325,7 @@ const qWk = isGemini ? geminiWk : tpWk;
 const q5hReset = isGemini ? gemini5hReset : tp5hReset;
 const qWkReset = isGemini ? geminiWkReset : tpWkReset;
 
-const quotaFmt = (q5h >= 0 || qWk >= 0) ? `${makeQuotaBar(q5h, "5H", FG_BRIGHT_CYAN, q5hReset)}  ${makeQuotaBar(qWk, "7D", FG_BRIGHT_MAGENTA, qWkReset)}` : "";
+const quotaFmt = (q5h >= 0 || qWk >= 0) ? `${makeQuotaBar(q5h, "5H", FG_BRIGHT_CYAN, q5hReset)} ${makeQuotaBar(qWk, "7D", FG_BRIGHT_MAGENTA, qWkReset)}` : "";
 
 // ─── Output Assembly ──────────────────────────────────────────────────────────
 if (cols >= 180) {

@@ -261,20 +261,20 @@ format_reset_time() {
 
   if [ "$days" -gt 0 ]; then
     if [ "$hours" -gt 0 ]; then
-      echo -n " in ${days}d ${hours}h"
+      echo -n "${days}d ${hours}h"
     else
-      echo -n " in ${days}d"
+      echo -n "${days}d"
     fi
   elif [ "$hours" -gt 0 ]; then
     if [ "$mins" -gt 0 ]; then
-      echo -n " in ${hours}h ${mins}m"
+      echo -n "${hours}h ${mins}m"
     else
-      echo -n " in ${hours}h"
+      echo -n "${hours}h"
     fi
   elif [ "$mins" -gt 0 ]; then
-    echo -n " in ${mins}m"
+    echo -n "${mins}m"
   else
-    echo -n " in <1m"
+    echo -n "<1m"
   fi
 }
 
@@ -288,7 +288,7 @@ make_quota_bar() {
     for ((i = 0; i < 20; i++)); do
       bar="${bar}░"
     done
-    echo -n "${FG_GRAY}${bar} N/A (${label})${R}"
+    echo -n "${FG_GRAY}| ${R}${FG_BRIGHT_WHITE}${B}${label}${R} ${FG_GRAY}${bar} N/A${R}"
     return
   fi
 
@@ -327,10 +327,10 @@ make_quota_bar() {
 
   local reset_str=""
   if [ -n "$reset_sec" ] && [ "$reset_sec" -gt 0 ]; then
-    reset_str=$(format_reset_time "$reset_sec")
+    reset_str=" ⌛️ $(format_reset_time "$reset_sec")"
   fi
 
-  echo -n "${bar} ${text_color}${val}%${R} ${FG_GRAY}(${label}${reset_str})${R}"
+  echo -n "${FG_GRAY}| ${R}${FG_BRIGHT_WHITE}${B}${label}${R} ${bar} ${text_color}${val}%${R}${reset_str}"
 }
 
 # Determine active quota
@@ -349,7 +349,7 @@ fi
 
 QUOTA_FMT=""
 if [ -n "$Q_5H" ] || [ -n "$Q_WK" ]; then
-  QUOTA_FMT="$(make_quota_bar "$Q_5H" "5H" "$FG_BRIGHT_CYAN" "$Q_5H_R")  $(make_quota_bar "$Q_WK" "7D" "$FG_BRIGHT_MAGENTA" "$Q_WK_R")"
+  QUOTA_FMT="$(make_quota_bar "$Q_5H" "5H" "$FG_BRIGHT_CYAN" "$Q_5H_R") $(make_quota_bar "$Q_WK" "7D" "$FG_BRIGHT_MAGENTA" "$Q_WK_R")"
 fi
 
 # ─── Right-align helper ──────────────────────────────────────────────────────
