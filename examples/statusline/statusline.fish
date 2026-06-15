@@ -30,6 +30,16 @@ set -l OUTPUT_TOKENS (echo $DATA | jq -r '.context_window.total_output_tokens //
 set -l CTX_LIMIT (echo $DATA | jq -r '.context_window.context_window_size // 0')
 set -l CTX_USED (echo $DATA | jq -r '(.context_window.total_input_tokens // 0) + (.context_window.total_output_tokens // 0)')
 
+set -l GEMINI_5H (echo $DATA | jq -r 'if .quota["gemini-5h"].remaining_fraction != null then ((.quota["gemini-5h"].remaining_fraction * 1000 | round) / 10) else -1 end')
+set -l GEMINI_WK (echo $DATA | jq -r 'if .quota["gemini-weekly"].remaining_fraction != null then ((.quota["gemini-weekly"].remaining_fraction * 1000 | round) / 10) else -1 end')
+set -l TP_5H (echo $DATA | jq -r 'if .quota["3p-5h"].remaining_fraction != null then ((.quota["3p-5h"].remaining_fraction * 1000 | round) / 10) else -1 end')
+set -l TP_WK (echo $DATA | jq -r 'if .quota["3p-weekly"].remaining_fraction != null then ((.quota["3p-weekly"].remaining_fraction * 1000 | round) / 10) else -1 end')
+
+set -l GEMINI_5H_RESET (echo $DATA | jq -r '.quota["gemini-5h"].reset_in_seconds // -1')
+set -l GEMINI_WK_RESET (echo $DATA | jq -r '.quota["gemini-weekly"].reset_in_seconds // -1')
+set -l TP_5H_RESET (echo $DATA | jq -r '.quota["3p-5h"].reset_in_seconds // -1')
+set -l TP_WK_RESET (echo $DATA | jq -r '.quota["3p-weekly"].reset_in_seconds // -1')
+
 # ─── VCS directly from git (bypasses JSON parsing entirely for accuracy) ──────
 set -l GIT_DIR $CWD
 if test -z "$GIT_DIR"
@@ -232,17 +242,125 @@ if test "$CTX_USED" -gt 0 2>/dev/null
     set TOK_DETAILS " ($CTX_USED_FMT/$CTX_LIMIT_FMT)"
 end
 
+# ─── Quota formatting ────────────────────────────────────────────────────────
+function format_reset_time -a sec
+    if test -z "$sec"; or test "$sec" -le 0
+        echo -n ""
+        return
+    end
+
+    set -l days (math -s0 "$sec / 86400")
+    set -l rem (math -s0 "$sec % 86400")
+    set -l hours (math -s0 "$rem / 3600")
+    set -l rem2 (math -s0 "$rem % 3600")
+    set -l mins (math -s0 "$rem2 / 60")
+
+    if test "$days" -gt 0
+        if test "$hours" -gt 0
+            echo -n " in "$days"d "$hours"h"
+        else
+            echo -n " in "$days"d"
+        fi
+    elif test "$hours" -gt 0
+        if test "$mins" -gt 0
+            echo -n " in "$hours"h "$mins"m"
+        else
+            echo -n " in "$hours"h"
+        fi
+    elif test "$mins" -gt 0
+        echo -n " in "$mins"m"
+    else
+        echo -n " in <1m"
+    fi
+end
+
+function make_quota_bar -a val label bar_color reset_sec R FG_GRAY FG_BRIGHT_GREEN FG_BRIGHT_YELLOW FG_BRIGHT_RED
+    if test -z "$val"; or string match -q "-*" -- "$val"
+        set -l bar ""
+        for i in (seq 1 20)
+            set bar "$bar░"
+        end
+        echo -n "$FG_GRAY$bar N/A ($label)$R"
+        return
+    end
+
+    set -l val_int (string split -m 1 "." $val)[1]
+    if test -z "$val_int"
+        set val_int 0
+    end
+    
+    set -l fill_color $FG_BRIGHT_GREEN
+    if test "$val_int" -lt 20
+        set fill_color $FG_BRIGHT_RED
+    elif test "$val_int" -lt 50
+        set fill_color $FG_BRIGHT_YELLOW
+    end
+
+    set -l bar_len 20
+    set -l filled (math -s0 "$val_int * $bar_len / 100")
+    set -l remainder (math -s0 "($val_int * $bar_len) % 100")
+    
+    set -l bar ""
+    for i in (seq 0 (math "$bar_len - 1"))
+        if test "$i" -lt "$filled"
+            set bar "$bar$bar_color"█"$R"
+        elif test "$i" -eq "$filled"
+            if test "$remainder" -ge 75
+                set bar "$bar$bar_color"▓"$R$FG_GRAY"
+            elif test "$remainder" -ge 50
+                set bar "$bar$bar_color"▒"$R$FG_GRAY"
+            elif test "$remainder" -ge 25
+                set bar "$bar$bar_color"░"$R$FG_GRAY"
+            else
+                set bar "$bar$FG_GRAY"░"$R"
+            end
+        else
+            set bar "$bar$FG_GRAY"░"$R"
+        end
+    end
+
+    set -l reset_str ""
+    if test -n "$reset_sec"; and test "$reset_sec" -gt 0
+        set reset_str (format_reset_time $reset_sec)
+    end
+    echo -n "$bar $fill_color$val%$R $FG_GRAY($label$reset_str)$R"
+end
+
+set -l MODEL_LOWER (string lower "$MODEL_DISP")
+set -l Q_5H ""
+set -l Q_WK ""
+set -l Q_5H_R ""
+set -l Q_WK_R ""
+if string match -q -r 'gemini' "$MODEL_LOWER"
+    set Q_5H $GEMINI_5H
+    set Q_WK $GEMINI_WK
+    set Q_5H_R $GEMINI_5H_RESET
+    set Q_WK_R $GEMINI_WK_RESET
+else
+    set Q_5H $TP_5H
+    set Q_WK $TP_WK
+    set Q_5H_R $TP_5H_RESET
+    set Q_WK_R $TP_WK_RESET
+end
+
+set -l QUOTA_FMT ""
+if test -n "$Q_5H"; or test -n "$Q_WK"
+    set -l fmt_5h (make_quota_bar $Q_5H "5H" "$FG_BRIGHT_CYAN" "$Q_5H_R" "$R" "$FG_GRAY" "$FG_BRIGHT_GREEN" "$FG_BRIGHT_YELLOW" "$FG_BRIGHT_RED")
+    set -l fmt_wk (make_quota_bar $Q_WK "7D" "$FG_BRIGHT_MAGENTA" "$Q_WK_R" "$R" "$FG_GRAY" "$FG_BRIGHT_GREEN" "$FG_BRIGHT_YELLOW" "$FG_BRIGHT_RED")
+    set QUOTA_FMT "$fmt_5h  $fmt_wk"
+end
+
 # Output Assembly
 if test "$COLS" -ge 180
     set -l line1 "$S$M$DIR_FMT$V$CONV_FMT"
     if test "$CTX_USED" -gt 0 2>/dev/null
         set TOK_DETAILS " ($CTX_USED_FMT/$CTX_LIMIT_FMT)$DOT$FG_YELLOW $R ($INPUT_TOK_FMT in/$OUTPUT_TOK_FMT out)"
     end
-    set -l line2 "$ART_FMT$DOT$SUB_FMT$DOT$BG_FMT$DOT$SB$DOT$CTX_BAR$TOK_DETAILS"
+    set -l line2 "$ART_FMT$DOT$SUB_FMT$DOT$BG_FMT$DOT$SB$DOT$CTX_BAR$TOK_DETAILS$DOT$QUOTA_FMT"
     print_right_aligned $line1 $line2 $COLS
 elif test "$COLS" -ge 90
     set -l line1 "$S$M$DIR_FMT$V"
-    set -l line2 " $CTX_BAR$TOK_DETAILS$DOT$ART_FMT$DOT$SUB_FMT$DOT$BG_FMT$DOT$SB"
+    set -l line2 " $CTX_BAR$TOK_DETAILS$DOT$ART_FMT$DOT$SUB_FMT$DOT$BG_FMT$DOT$SB$DOT$QUOTA_FMT"
     echo -e "$FG_GRAY╭─$R$line1"
     echo -e "$FG_GRAY╰─$R$line2"
 else
@@ -252,5 +370,5 @@ else
         set M_SHORT "$FG_GRAY ╱ $FG_BRIGHT_MAGENTA$sub_model$R"
     end
     echo -e "$S$M_SHORT"
-    echo -e "$CTX_BAR$DOT$BG_FMT"
+    echo -e "$CTX_BAR$DOT$BG_FMT$DOT$QUOTA_FMT"
 end

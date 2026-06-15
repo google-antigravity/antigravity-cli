@@ -55,6 +55,14 @@ NUM_COLOR="${FG_BRIGHT_WHITE}${B}"
   read -r CTX_LIMIT
   read -r CTX_USED
   read -r REM_PCT
+  read -r GEMINI_5H
+  read -r GEMINI_WK
+  read -r TP_5H
+  read -r TP_WK
+  read -r GEMINI_5H_RESET
+  read -r GEMINI_WK_RESET
+  read -r TP_5H_RESET
+  read -r TP_WK_RESET
 } <<< "$(
   echo "$INPUT_JSON" | jq -r '
     (.agent_state // "idle"),
@@ -78,8 +86,16 @@ NUM_COLOR="${FG_BRIGHT_WHITE}${B}"
     (.context_window.total_output_tokens // 0),
     (.context_window.context_window_size // 0),
     ((.context_window.total_input_tokens // 0) + (.context_window.total_output_tokens // 0)),
-    (.context_window.remaining_percentage // 100)
-  ' 2>/dev/null || printf "idle\n0\n\nfalse\n\n\nfalse\nfalse\n0\n0\n0\n\n\n80\n\n\n\n0\n0\n0\n0\n100\n"
+    (.context_window.remaining_percentage // 100),
+    (if .quota["gemini-5h"].remaining_fraction != null then ((.quota["gemini-5h"].remaining_fraction * 1000 | round) / 10) else -1 end),
+    (if .quota["gemini-weekly"].remaining_fraction != null then ((.quota["gemini-weekly"].remaining_fraction * 1000 | round) / 10) else -1 end),
+    (if .quota["3p-5h"].remaining_fraction != null then ((.quota["3p-5h"].remaining_fraction * 1000 | round) / 10) else -1 end),
+    (if .quota["3p-weekly"].remaining_fraction != null then ((.quota["3p-weekly"].remaining_fraction * 1000 | round) / 10) else -1 end),
+    (.quota["gemini-5h"].reset_in_seconds // -1),
+    (.quota["gemini-weekly"].reset_in_seconds // -1),
+    (.quota["3p-5h"].reset_in_seconds // -1),
+    (.quota["3p-weekly"].reset_in_seconds // -1)
+  ' 2>/dev/null || printf "idle\n0\n\nfalse\n\n\nfalse\nfalse\n0\n0\n0\n\n\n80\n\n\n\n0\n0\n0\n0\n100\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n"
 )"
 
 
@@ -229,6 +245,113 @@ if [ "$CTX_USED" -gt 0 ] 2>/dev/null; then
   TOK_DETAILS=" (${CTX_USED_FMT}/${CTX_LIMIT_FMT})"
 fi
 
+# ─── Quota formatting ────────────────────────────────────────────────────────
+format_reset_time() {
+  local sec=$1
+  if [ -z "$sec" ] || [ "$sec" -le 0 ]; then
+    echo -n ""
+    return
+  fi
+
+  local days=$((sec / 86400))
+  local rem=$((sec % 86400))
+  local hours=$((rem / 3600))
+  rem=$((rem % 3600))
+  local mins=$((rem / 60))
+
+  if [ "$days" -gt 0 ]; then
+    if [ "$hours" -gt 0 ]; then
+      echo -n " in ${days}d ${hours}h"
+    else
+      echo -n " in ${days}d"
+    fi
+  elif [ "$hours" -gt 0 ]; then
+    if [ "$mins" -gt 0 ]; then
+      echo -n " in ${hours}h ${mins}m"
+    else
+      echo -n " in ${hours}h"
+    fi
+  elif [ "$mins" -gt 0 ]; then
+    echo -n " in ${mins}m"
+  else
+    echo -n " in <1m"
+  fi
+}
+
+make_quota_bar() {
+  local val=$1
+  local label=$2
+  local bar_color=$3
+  local reset_sec=$4
+  if [ -z "$val" ] || [[ "$val" == -* ]]; then
+    local bar=""
+    for ((i = 0; i < 20; i++)); do
+      bar="${bar}░"
+    done
+    echo -n "${FG_GRAY}${bar} N/A (${label})${R}"
+    return
+  fi
+
+  local val_int=${val%.*}
+  val_int=${val_int:-0}
+  
+  local text_color="$FG_BRIGHT_GREEN"
+  if [ "$val_int" -lt 20 ]; then
+    text_color="$FG_BRIGHT_RED"
+  elif [ "$val_int" -lt 50 ]; then
+    text_color="$FG_BRIGHT_YELLOW"
+  fi
+
+  local bar_len=20
+  local filled=$((val_int * bar_len / 100))
+  local remainder=$(( (val_int * bar_len) % 100 ))
+  
+  local bar=""
+  for ((i = 0; i < bar_len; i++)); do
+    if [ "$i" -lt "$filled" ]; then
+      bar="${bar}${bar_color}█${R}"
+    elif [ "$i" -eq "$filled" ]; then
+      if [ "$remainder" -ge 75 ]; then
+        bar="${bar}${bar_color}▓${R}${FG_GRAY}"
+      elif [ "$remainder" -ge 50 ]; then
+        bar="${bar}${bar_color}▒${R}${FG_GRAY}"
+      elif [ "$remainder" -ge 25 ]; then
+        bar="${bar}${bar_color}░${R}${FG_GRAY}"
+      else
+        bar="${bar}${FG_GRAY}░${R}"
+      fi
+    else
+      bar="${bar}${FG_GRAY}░${R}"
+    fi
+  done
+
+  local reset_str=""
+  if [ -n "$reset_sec" ] && [ "$reset_sec" -gt 0 ]; then
+    reset_str=$(format_reset_time "$reset_sec")
+  fi
+
+  echo -n "${bar} ${text_color}${val}%${R} ${FG_GRAY}(${label}${reset_str})${R}"
+}
+
+# Determine active quota
+MODEL_LOWER=$(echo "${MODEL_NAME:-$MODEL_ID}" | tr '[:upper:]' '[:lower:]')
+if [[ "$MODEL_LOWER" == *gemini* ]]; then
+  Q_5H="$GEMINI_5H"
+  Q_WK="$GEMINI_WK"
+  Q_5H_R="$GEMINI_5H_RESET"
+  Q_WK_R="$GEMINI_WK_RESET"
+else
+  Q_5H="$TP_5H"
+  Q_WK="$TP_WK"
+  Q_5H_R="$TP_5H_RESET"
+  Q_WK_R="$TP_WK_RESET"
+fi
+
+QUOTA_FMT=""
+if [ -n "$Q_5H" ] || [ -n "$Q_WK" ]; then
+  QUOTA_FMT="$(make_quota_bar "$Q_5H" "5H" "$FG_BRIGHT_CYAN" "$Q_5H_R")  $(make_quota_bar "$Q_WK" "7D" "$FG_BRIGHT_MAGENTA" "$Q_WK_R")"
+fi
+
 # ─── Right-align helper ──────────────────────────────────────────────────────
 # Prints LINE1 left-aligned and LINE2 right-aligned on the same terminal row.
 print_right_aligned() {
@@ -255,13 +378,13 @@ if [ "$COLS" -ge 180 ]; then
     TOK_DETAILS=" (${CTX_USED_FMT}/${CTX_LIMIT_FMT})${DOT}${FG_YELLOW} ${R} (${INPUT_TOK_FMT} in/${OUTPUT_TOK_FMT} out)"
   fi
 
-  LINE2="${ART_FMT}${DOT}${SUB_FMT}${DOT}${BG_FMT}${DOT}${SB}${DOT}${CTX_BAR}${TOK_DETAILS}"
+  LINE2="${ART_FMT}${DOT}${SUB_FMT}${DOT}${BG_FMT}${DOT}${SB}${DOT}${CTX_BAR}${TOK_DETAILS}${DOT}${QUOTA_FMT}"
   print_right_aligned "$LINE1" "$LINE2" "$COLS"
 
 elif [ "$COLS" -ge 90 ]; then
   # Medium Layout: Two-line layout with border
   LINE1="${S}${M}${DIR_FMT}${V}"
-  LINE2=" ${CTX_BAR}${TOK_DETAILS}${DOT}${ART_FMT}${DOT}${SUB_FMT}${DOT}${BG_FMT}${DOT}${SB}"
+  LINE2=" ${CTX_BAR}${TOK_DETAILS}${DOT}${ART_FMT}${DOT}${SUB_FMT}${DOT}${BG_FMT}${DOT}${SB}${DOT}${QUOTA_FMT}"
 
   echo -e "${FG_GRAY}╭─${R}${LINE1}"
   echo -e "${FG_GRAY}╰─${R}${LINE2}"
@@ -273,5 +396,5 @@ else
   fi
 
   echo -e "${S}${M_SHORT}"
-  echo -e "${CTX_BAR}${DOT}${BG_FMT}"
+  echo -e "${CTX_BAR}${DOT}${BG_FMT}${DOT}${QUOTA_FMT}"
 fi

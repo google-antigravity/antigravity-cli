@@ -69,6 +69,16 @@ const outputTokens = (data.context_window && data.context_window.total_output_to
 const ctxLimit = (data.context_window && data.context_window.context_window_size) ? data.context_window.context_window_size : 0;
 const ctxUsed = inputTokens + outputTokens;
 
+const gemini5h = (data.quota && data.quota["gemini-5h"] && typeof data.quota["gemini-5h"].remaining_fraction === 'number') ? data.quota["gemini-5h"].remaining_fraction * 100 : -1;
+const geminiWk = (data.quota && data.quota["gemini-weekly"] && typeof data.quota["gemini-weekly"].remaining_fraction === 'number') ? data.quota["gemini-weekly"].remaining_fraction * 100 : -1;
+const tp5h = (data.quota && data.quota["3p-5h"] && typeof data.quota["3p-5h"].remaining_fraction === 'number') ? data.quota["3p-5h"].remaining_fraction * 100 : -1;
+const tpWk = (data.quota && data.quota["3p-weekly"] && typeof data.quota["3p-weekly"].remaining_fraction === 'number') ? data.quota["3p-weekly"].remaining_fraction * 100 : -1;
+
+const gemini5hReset = (data.quota && data.quota["gemini-5h"] && typeof data.quota["gemini-5h"].reset_in_seconds === 'number') ? data.quota["gemini-5h"].reset_in_seconds : -1;
+const geminiWkReset = (data.quota && data.quota["gemini-weekly"] && typeof data.quota["gemini-weekly"].reset_in_seconds === 'number') ? data.quota["gemini-weekly"].reset_in_seconds : -1;
+const tp5hReset = (data.quota && data.quota["3p-5h"] && typeof data.quota["3p-5h"].reset_in_seconds === 'number') ? data.quota["3p-5h"].reset_in_seconds : -1;
+const tpWkReset = (data.quota && data.quota["3p-weekly"] && typeof data.quota["3p-weekly"].reset_in_seconds === 'number') ? data.quota["3p-weekly"].reset_in_seconds : -1;
+
 // ─── VCS directly from git (bypasses JSON parsing entirely for accuracy) ──────
 try {
   const gitDir = cwd || ".";
@@ -228,17 +238,106 @@ if (ctxUsed > 0) {
   tokDetails = ` (${humanFormat(ctxUsed)}/${humanFormat(ctxLimit)})`;
 }
 
+// ─── Quota formatting ────────────────────────────────────────────────────────
+function formatResetTime(sec) {
+  if (sec === undefined || sec === null || sec <= 0) return "";
+  const days = Math.floor(sec / 86400);
+  const rem = sec % 86400;
+  const hours = Math.floor(rem / 3600);
+  const mins = Math.floor((rem % 3600) / 60);
+
+  if (days > 0) {
+    return hours > 0 ? ` in ${days}d ${hours}h` : ` in ${days}d`;
+  } else if (hours > 0) {
+    return mins > 0 ? ` in ${hours}h ${mins}m` : ` in ${hours}h`;
+  } else if (mins > 0) {
+    return ` in ${mins}m`;
+  } else {
+    return " in <1m";
+  }
+}
+
+function makeQuotaBar(val, label, barColor, resetSec) {
+  if (val === undefined || val === null || val < 0) {
+    return `${FG_GRAY}${"░".repeat(20)} N/A (${label})${R}`;
+  }
+  let color = FG_BRIGHT_GREEN;
+  if (val < 20) {
+    color = FG_BRIGHT_RED;
+  } else if (val < 50) {
+    color = FG_BRIGHT_YELLOW;
+  }
+
+  const barLen = 20;
+  const pctInt = Math.floor(val);
+  const filled = Math.floor((pctInt * barLen) / 100);
+  const remainder = (pctInt * barLen) % 100;
+
+  let bar = "";
+  for (let i = 0; i < barLen; i++) {
+    if (i < filled) {
+      bar += "█";
+    } else if (i === filled) {
+      if (remainder >= 75) {
+        bar += "▓";
+      } else if (remainder >= 50) {
+        bar += "▒";
+      } else if (remainder >= 25) {
+        bar += "░";
+      } else {
+        bar += "░";
+      }
+    } else {
+      bar += "░";
+    }
+  }
+
+  let coloredBar = "";
+  let inColor = false;
+  for (let i = 0; i < barLen; i++) {
+    const char = bar[i];
+    if (char === "█" || char === "▓" || char === "▒") {
+      if (!inColor) {
+        coloredBar += barColor;
+        inColor = true;
+      }
+      coloredBar += char;
+    } else {
+      if (inColor) {
+        coloredBar += R;
+        inColor = false;
+      }
+      coloredBar += `${FG_GRAY}${char}${R}`;
+    }
+  }
+  if (inColor) {
+    coloredBar += R;
+  }
+
+  const valFmt = val.toFixed(1).replace(/\.0$/, '');
+  const resetStr = resetSec > 0 ? formatResetTime(resetSec) : "";
+  return `${coloredBar} ${color}${valFmt}%${R} ${FG_GRAY}(${label}${resetStr})${R}`;
+}
+
+const isGemini = (modelDisp || "").toLowerCase().includes("gemini");
+const q5h = isGemini ? gemini5h : tp5h;
+const qWk = isGemini ? geminiWk : tpWk;
+const q5hReset = isGemini ? gemini5hReset : tp5hReset;
+const qWkReset = isGemini ? geminiWkReset : tpWkReset;
+
+const quotaFmt = (q5h >= 0 || qWk >= 0) ? `${makeQuotaBar(q5h, "5H", FG_BRIGHT_CYAN, q5hReset)}  ${makeQuotaBar(qWk, "7D", FG_BRIGHT_MAGENTA, qWkReset)}` : "";
+
 // ─── Output Assembly ──────────────────────────────────────────────────────────
 if (cols >= 180) {
   let line1 = `${S}${M}${dirFmt}${V}${convFmt}`;
   if (ctxUsed > 0) {
     tokDetails = ` (${humanFormat(ctxUsed)}/${humanFormat(ctxLimit)})${dot}${FG_YELLOW} ${R} (${humanFormat(inputTokens)} in/${humanFormat(outputTokens)} out)`;
   }
-  let line2 = `${artFmt}${dot}${subFmt}${dot}${bgFmt}${dot}${SB}${dot}${ctxBar}${tokDetails}`;
+  let line2 = `${artFmt}${dot}${subFmt}${dot}${bgFmt}${dot}${SB}${dot}${ctxBar}${tokDetails}${dot}${quotaFmt}`;
   printRightAligned(line1, line2, cols);
 } else if (cols >= 90) {
   let line1 = `${S}${M}${dirFmt}${V}`;
-  let line2 = ` ${ctxBar}${tokDetails}${dot}${artFmt}${dot}${subFmt}${dot}${bgFmt}${dot}${SB}`;
+  let line2 = ` ${ctxBar}${tokDetails}${dot}${artFmt}${dot}${subFmt}${dot}${bgFmt}${dot}${SB}${dot}${quotaFmt}`;
   console.log(`${FG_GRAY}╭─${R}${line1}`);
   console.log(`${FG_GRAY}╰─${R}${line2}`);
 } else {
@@ -247,5 +346,5 @@ if (cols >= 180) {
     mShort = `${FG_GRAY} ╱ ${FG_BRIGHT_MAGENTA}${modelDisp}${R}`;
   }
   console.log(`${S}${mShort}`);
-  console.log(`${ctxBar}${dot}${bgFmt}`);
+  console.log(`${ctxBar}${dot}${bgFmt}${dot}${quotaFmt}`);
 }
