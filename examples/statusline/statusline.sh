@@ -37,6 +37,7 @@ NUM_COLOR="${FG_BRIGHT_WHITE}${B}"
   read -r VCS_BRANCH
   read -r VCS_DIRTY
   read -r SANDBOX
+  read -r SANDBOX_NET
   read -r ARTIFACTS
   read -r SUBAGENTS
   read -r BG_TASKS
@@ -49,12 +50,13 @@ NUM_COLOR="${FG_BRIGHT_WHITE}${B}"
     (.vcs.branch // ""),
     (.vcs.dirty // false),
     (.sandbox.enabled // false),
+    (.sandbox.allow_network // false),
     (.artifact_count // 0),
     (if .subagents | type == "array" then (.subagents | length) else 0 end),
     (.task_count // 0),
     (.model.display_name // ""),
     (.terminal_width // 80)
-  ' 2>/dev/null || printf "idle\n0\n\nfalse\nfalse\n0\n0\n0\n\n80\n"
+  ' 2>/dev/null || printf "idle\n0\n\nfalse\nfalse\nfalse\n0\n0\n0\n\n80\n"
 )"
 
 # ─── Computed Values ─────────────────────────────────────────────────────────
@@ -103,9 +105,28 @@ if [ "$SANDBOX" != "true" ]; then
   fi
 fi
 
+# ─── Sandbox Network (same unpopulated-payload problem as .enabled) ──────────
+# The payload's sandbox object only carries .enabled; there is no
+# .sandbox.allow_network field, so SANDBOX_NET always falls back to "false" and
+# the badge can't tell net from no-net. The session log has no network-specific
+# line either. The authoritative source is the user's sandboxAllowNetwork
+# setting, so read it from settings.json. Like the .enabled workaround above,
+# this self-corrects once the payload field is populated upstream. See #321.
+if [ "$SANDBOX_NET" != "true" ]; then
+  SETTINGS_FILE="$HOME/.gemini/antigravity-cli/settings.json"
+  if [ -r "$SETTINGS_FILE" ] \
+     && jq -e '.sandboxAllowNetwork == true' "$SETTINGS_FILE" >/dev/null 2>&1; then
+    SANDBOX_NET="true"
+  fi
+fi
+
 # ─── Sandbox Badge ───────────────────────────────────────────────────────────
 if [ "$SANDBOX" = "true" ]; then
-  SB="${FG_GRAY}sandbox ${FG_BRIGHT_GREEN}${B}ON${R}"
+  if [ "$SANDBOX_NET" = "true" ]; then
+    SB="${FG_GRAY}sandbox ${FG_BRIGHT_GREEN}${B}ON${R} ${FG_GRAY}(net)${R}"
+  else
+    SB="${FG_GRAY}sandbox ${FG_BRIGHT_GREEN}${B}ON${R} ${FG_GRAY}(no-net)${R}"
+  fi
 else
   SB="${FG_GRAY}sandbox off${R}"
 fi
