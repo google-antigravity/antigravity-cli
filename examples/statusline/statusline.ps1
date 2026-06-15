@@ -74,6 +74,16 @@ $outputTokens = if ($data.context_window -and $null -ne $data.context_window.tot
 $ctxLimit = if ($data.context_window -and $null -ne $data.context_window.context_window_size) { $data.context_window.context_window_size } else { 0 }
 $ctxUsed = $inputTokens + $outputTokens
 
+$gemini5h = if ($data.quota -and $data.quota.'gemini-5h' -and $null -ne $data.quota.'gemini-5h'.remaining_fraction) { [double]$data.quota.'gemini-5h'.remaining_fraction * 100 } else { -1.0 }
+$geminiWk = if ($data.quota -and $data.quota.'gemini-weekly' -and $null -ne $data.quota.'gemini-weekly'.remaining_fraction) { [double]$data.quota.'gemini-weekly'.remaining_fraction * 100 } else { -1.0 }
+$tp5h = if ($data.quota -and $data.quota.'3p-5h' -and $null -ne $data.quota.'3p-5h'.remaining_fraction) { [double]$data.quota.'3p-5h'.remaining_fraction * 100 } else { -1.0 }
+$tpWk = if ($data.quota -and $data.quota.'3p-weekly' -and $null -ne $data.quota.'3p-weekly'.remaining_fraction) { [double]$data.quota.'3p-weekly'.remaining_fraction * 100 } else { -1.0 }
+
+$gemini5hReset = if ($data.quota -and $data.quota.'gemini-5h' -and $null -ne $data.quota.'gemini-5h'.reset_in_seconds) { [int]$data.quota.'gemini-5h'.reset_in_seconds } else { -1 }
+$geminiWkReset = if ($data.quota -and $data.quota.'gemini-weekly' -and $null -ne $data.quota.'gemini-weekly'.reset_in_seconds) { [int]$data.quota.'gemini-weekly'.reset_in_seconds } else { -1 }
+$tp5hReset = if ($data.quota -and $data.quota.'3p-5h' -and $null -ne $data.quota.'3p-5h'.reset_in_seconds) { [int]$data.quota.'3p-5h'.reset_in_seconds } else { -1 }
+$tpWkReset = if ($data.quota -and $data.quota.'3p-weekly' -and $null -ne $data.quota.'3p-weekly'.reset_in_seconds) { [int]$data.quota.'3p-weekly'.reset_in_seconds } else { -1 }
+
 # ─── VCS directly from git (bypasses JSON parsing entirely for accuracy) ──────
 try {
     $gitDir = if ($cwd) { $cwd } else { "." }
@@ -237,6 +247,119 @@ if ($ctxUsed -gt 0) {
     $tokDetails = " (${ctxUsedFmt}/${ctxLimitFmt})"
 }
 
+# ─── Quota formatting ────────────────────────────────────────────────────────
+function Get-ResetTimeFmt {
+    param ($sec)
+    if ($null -eq $sec -or $sec -le 0) { return "" }
+    $days = [Math]::Floor($sec / 86400)
+    $rem = $sec % 86400
+    $hours = [Math]::Floor($rem / 3600)
+    $mins = [Math]::Floor(($rem % 3600) / 60)
+
+    if ($days -gt 0) {
+        if ($hours -gt 0) { return " in ${days}d ${hours}h" }
+        return " in ${days}d"
+    } elseif ($hours -gt 0) {
+        if ($mins -gt 0) { return " in ${hours}h ${mins}m" }
+        return " in ${hours}h"
+    } elseif ($mins -gt 0) {
+        return " in ${mins}m"
+    } else {
+        return " in <1m"
+    }
+}
+
+function Get-QuotaBar {
+    param ($val, $label, $barColor, $resetSec)
+    if ($null -eq $val -or $val -lt 0) {
+        $emptyBar = "░" * 20
+        return "${FG_GRAY}${emptyBar} N/A (${label})${R}"
+    }
+    $color = $FG_BRIGHT_GREEN
+    if ($val -lt 20) {
+        $color = $FG_BRIGHT_RED
+    } elseif ($val -lt 50) {
+        $color = $FG_BRIGHT_YELLOW
+    }
+
+    $barLen = 20
+    $pctInt = [int][Math]::Floor($val)
+    $filled = [int][Math]::Floor($pctInt * $barLen / 100)
+    $remainder = ($pctInt * $barLen) % 100
+
+    $bar = ""
+    for ($i = 0; $i -lt $barLen; $i++) {
+        if ($i -lt $filled) {
+            $bar += "█"
+        } elseif ($i -eq $filled) {
+            if ($remainder -ge 75) {
+                $bar += "▓"
+            } elseif ($remainder -ge 50) {
+                $bar += "▒"
+            } elseif ($remainder -ge 25) {
+                $bar += "░"
+            } else {
+                $bar += "░"
+            }
+        } else {
+            $bar += "░"
+        }
+    }
+
+    $coloredBar = ""
+    $inColor = $false
+    for ($i = 0; $i -lt $barLen; $i++) {
+        $char = $bar[$i]
+        if ($char -eq "█" -or $char -eq "▓" -or $char -eq "▒") {
+            if (-not $inColor) {
+                $coloredBar += $barColor
+                $inColor = $true
+            }
+            $coloredBar += $char
+        } else {
+            if ($inColor) {
+                $coloredBar += $R
+                $inColor = $false
+            }
+            $coloredBar += "${FG_GRAY}${char}${R}"
+        }
+    }
+    if ($inColor) {
+        $coloredBar += $R
+    }
+
+    $valFmt = $val.ToString("0.0", [System.Globalization.CultureInfo]::InvariantCulture)
+    if ($valFmt.EndsWith(".0")) {
+        $valFmt = $valFmt.Substring(0, $valFmt.Length - 2)
+    }
+
+    $resetStr = ""
+    if ($null -ne $resetSec -and $resetSec -gt 0) {
+        $resetStr = Get-ResetTimeFmt -sec $resetSec
+    }
+    return "${coloredBar} ${color}${valFmt}%${R} ${FG_GRAY}(${label}${resetStr})${R}"
+}
+
+$isGemini = $modelDisp.ToLower().Contains("gemini")
+if ($isGemini) {
+    $q5h = $gemini5h
+    $qWk = $geminiWk
+    $q5hR = $gemini5hReset
+    $qWkR = $geminiWkReset
+} else {
+    $q5h = $tp5h
+    $qWk = $tpWk
+    $q5hR = $tp5hReset
+    $qWkR = $tpWkReset
+}
+
+$QUOTA_FMT = ""
+if ($q5h -ge 0 -or $qWk -ge 0) {
+    $fmt5h = Get-QuotaBar -val $q5h -label "5H" -barColor $FG_BRIGHT_CYAN -resetSec $q5hR
+    $fmtWk = Get-QuotaBar -val $qWk -label "7D" -barColor $FG_BRIGHT_MAGENTA -resetSec $qWkR
+    $QUOTA_FMT = "${fmt5h}  ${fmtWk}"
+}
+
 # ─── Output Assembly ──────────────────────────────────────────────────────────
 if ($cols -ge 180) {
     $line1 = "${S}${M}${DIR_FMT}${V}${CONV_FMT}"
@@ -247,11 +370,11 @@ if ($cols -ge 180) {
         $outputTokFmt = Get-HumanFormat $outputTokens
         $tokDetails = " (${ctxUsedFmt}/${ctxLimitFmt})${DOT}${FG_YELLOW} ${R} (${inputTokFmt} in/${outputTokFmt} out)"
     }
-    $line2 = "${ART_FMT}${DOT}${SUB_FMT}${DOT}${BG_FMT}${DOT}${SB}${DOT}${CTX_BAR}${tokDetails}"
+    $line2 = "${ART_FMT}${DOT}${SUB_FMT}${DOT}${BG_FMT}${DOT}${SB}${DOT}${CTX_BAR}${tokDetails}${DOT}${QUOTA_FMT}"
     Write-RightAligned -left $line1 -right $line2 -totalCols $cols
 } elseif ($cols -ge 90) {
     $line1 = "${S}${M}${DIR_FMT}${V}"
-    $line2 = " ${CTX_BAR}${tokDetails}${DOT}${ART_FMT}${DOT}${SUB_FMT}${DOT}${BG_FMT}${DOT}${SB}"
+    $line2 = " ${CTX_BAR}${tokDetails}${DOT}${ART_FMT}${DOT}${SUB_FMT}${DOT}${BG_FMT}${DOT}${SB}${DOT}${QUOTA_FMT}"
     Write-Output "${FG_GRAY}╭─${R}${line1}"
     Write-Output "${FG_GRAY}╰─${R}${line2}"
 } else {
@@ -261,5 +384,5 @@ if ($cols -ge 180) {
         $mShort = "${FG_GRAY} ╱ ${FG_BRIGHT_MAGENTA}${subModelDisp}${R}"
     }
     Write-Output "${S}${mShort}"
-    Write-Output "${CTX_BAR}${DOT}${BG_FMT}"
+    Write-Output "${CTX_BAR}${DOT}${BG_FMT}${DOT}${QUOTA_FMT}"
 }
