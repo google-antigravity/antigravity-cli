@@ -2,6 +2,54 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.0.8
+
+- Added support for capturing slash command history, allowing users to use the up arrow to replay previously entered slash commands.
+- Redesigned the "Models & Quota" page (enabled by default, replacing the legacy usage page) to gracefully handle disabled quota buckets by displaying a dimmed "Disabled" status and omitting the progress bar.
+- Added display of quota usage and execution mode in the status line.
+- Improved `/btw` to be more token efficient and support streaming responses for a smoother user experience and fixed premature truncation.
+- Fixed a bug where the `/hooks` command wrote configurations to `~/.gemini/antigravity-cli/hooks.json` instead of the shared `~/.gemini/config/hooks.json`, ensuring hooks remain synchronized between the TUI and the backend.
+- Fixed a CPU compatibility issue (SIGILL on non-AES-NI CPUs), preventing immediate crashes on startup on older CPUs (like Intel Ivy Bridge) or VM environments that lack AES-NI support.
+- Added a per-line guard against extremely long single-line pastes in the TUI prompt editor to prevent performance lag, replacing them with an expandable placeholder.
+- Redesigned the `/resume` conversation picker to align the workspace column and added adaptive column dropping (workspace, time, steps) to support narrow terminals.
+- Redesigned the `/tasks` list and detail views for better alignment and readability, placing start times on the left, right-aligning status, and capping the panel height.
+- Fixed dynamic reloading of custom skills and system slash commands, ensuring they are instantly discovered in autocomplete upon conversation switch or `/add-dir`.
+- Improved configuration saving by propagating write failures as transient error flashes on the statusline.
+- Improved settings inheritance by ensuring the CLI inherits the `use_ai_credits` setting from global user settings on startup.
+- Fixed a TUI hang in the artifact view during long sessions by optimizing the rendering complexity of large step histories.
+- Fixed an autocomplete bug where a command that is an exact prefix of another (e.g., `/conv` vs `/conv-switch`) would aggressively auto-complete and hide the suggestions menu.
+- Fixed a race condition where sending a message immediately after denying a permission request would fail due to incomplete backend cleanup.
+- Fixed potential OOM risks when reading large clipboard files by verifying file size before reading.
+- Fixed Windows and Wayland-only Linux distributions clipboard image and file reading.
+
+## 1.0.7
+
+- Added a configurable timeout for launching MCP servers, allowing users to specify a custom timeout or set it to `-1` to disable the timeout completely.
+- Revamped the artifact viewer gutter numbering and line mapping to accurately align terminal viewport lines with actual 1-based source file line numbers, including support for wrapped lines and collapsed Mermaid diagrams.
+- Fixed a bug where the CLI could get stuck in a pending state (showing a transient spinner) after sending a message due to stale status updates.
+- Fixed a bug where the wrong workspace directory was displayed in the header and `/help` menu when multiple workspaces were active.
+- Fixed a desync bug in the agent state management where stale callbacks from previous runs could be used upon cache hits in new agent state.
+- Fixed Windows-specific sandbox network proxy issues, resolving a hang during connection hijacking and correcting tunnel response protocols.
+- Fixed a bug where the archival status timestamp was not correctly saved when archiving conversations.
+- Fixed a potential stack overflow crash by introducing a non-recursive warning output mechanism for pre-conversation errors.
+- Increased the maximum tool calls limit to 512 for Gemini models, allowing agents to perform significantly more complex, multi-step tasks in a single turn.
+- Added support for installing plugins directly from GitHub subpaths (with branch resolution).
+- Fixed variable resolution in plugins, ensuring gemini cli variables like `${extensionPath}` correctly resolves to the final installation directory.
+- Added native Wayland clipboard support (wl-paste) on Linux, falling back to `xclip` for X11 environments, and prioritized copied files (from file managers) over raw image data.
+- Preserved unknown fields in `settings.json` during read, write, and merge operations, preventing settings from being silently wiped out when switching between different CLI versions or builds.
+- Fixed layout boundary overflow, scrolling visibility, and out-of-bounds scrolling bugs in the artifact detail view when inline comments are present.
+
+## 1.0.6
+
+- Added shell-style path auto-completion for `/open` and `/add-dir`.
+- Added optimistic rendering for user chat prompt submissions, injecting messages immediately into the viewport to eliminate perceived input lag.
+- Added fuzzy and partial substring matching across slash commands. E.g. `/el` -> shows `/help` and `/model` while previous no suggested completions.
+- Fixed a bug when suggestion was not triggered when `@` is typed after `(`. Enabled unconditional typeahead suggestions whenever `@` is typed without preceding whitespace, streamlining mention workflows.
+- Skipped subagent conversations from `/resume`, keeping the standalone conversation picker focused purely on direct user initiated conversations.
+- Added a `stack_with_default` flag to the `statusLine` configuration to render both the default Antigravity status line and custom status line output vertically stacked.
+- Fixed a bug where entering a prompt immediately after pressing `Esc` (to interrupt an active agent stream) caused the newly typed input to be swallowed or rejected.
+- Fixed `--sandbox` flag propagation in headless print mode (`-p` / `--print`), ensuring sandbox isolation is correctly enforced during non-interactive execution.
+
 ## 1.0.5
 
 - Added `--model` to set model when launching CLI. Also a new `models` subcommand to list available models.
