@@ -14,7 +14,7 @@
 
 <p align="center">
   <a href="https://github.com/weby-homelab/antigravity-cli"><img src="https://img.shields.io/badge/fork-google--antigravity-8a2be2?style=for-the-badge&logo=github" alt="GitHub Fork" /></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.0.4-success?style=for-the-badge&logo=git" alt="Version" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.0.8-success?style=for-the-badge&logo=git" alt="Version" /></a>
   <a href="https://antigravity.google/terms"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=for-the-badge" alt="License" /></a>
   <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey?style=for-the-badge" alt="Supported Platforms" />
 </p>
@@ -114,6 +114,10 @@ O arquivo de configuração global controla as permissões de execução de ferr
   }
 }
 ```
+
+> [!TIP]
+> Para obter uma linha de status avançada e responsiva com rastreamento de status Git em tempo real, medidores de tokens, cotas de modelos e estado de energia/batería, use o plugin **[Antigravity CLI Statusline (Max Edition)](https://github.com/weby-homelab/antigravity-cli-statusline)**.
+
 
 ### 3. Agentes Especializados
 Você pode descrever funções e instruções personalizadas para agentes de IA no formato JSON. Cada agente deve ter seu próprio diretório contendo um arquivo `agent.json`:

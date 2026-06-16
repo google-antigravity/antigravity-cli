@@ -14,7 +14,7 @@
 
 <p align="center">
   <a href="https://github.com/weby-homelab/antigravity-cli"><img src="https://img.shields.io/badge/fork-google--antigravity-8a2be2?style=for-the-badge&logo=github" alt="GitHub Fork" /></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.0.4-success?style=for-the-badge&logo=git" alt="Version" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.0.8-success?style=for-the-badge&logo=git" alt="Version" /></a>
   <a href="https://antigravity.google/terms"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=for-the-badge" alt="License" /></a>
   <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey?style=for-the-badge" alt="Supported Platforms" />
 </p>
@@ -114,6 +114,10 @@ install.cmd
   }
 }
 ```
+
+> [!TIP]
+> 如需具有实时 Git 状态跟踪、Token 计数器、模型配额以及电源/电池状态的高级响应式状态栏，请使用 **[Antigravity CLI Statusline (Max Edition)](https://github.com/weby-homelab/antigravity-cli-statusline)** 插件。
+
 
 ### 3. 专业智能体
 您可以使用 JSON 格式定义 AI 智能体的自定义角色和说明。每个智能体必须有自己的目录，其中包含一个 `agent.json` 文件：
