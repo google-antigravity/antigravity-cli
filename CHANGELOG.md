@@ -2,6 +2,123 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.1.0
+
+- Agent execution mode cycling is now publicly available: `default` -> `accept-edits` -> `plan`)
+- Added `request-review` (default) mode as the default execution behavior: automatically pauses before file write operations to display an interactive, line-level diff preview (`f` shortcut) where users can review, accept, or reject individual code modifications before they are saved to disk.
+- Added an `Agent Mode` option to the `/settings` panel so users can set and persist a default execution mode (`default`, `accept-edits`, `plan`) without manually editing `settings.json` or passing `--mode` on startup, with real-time synchronization so changes take effect immediately.
+- Added a dedicated `"Create file"` confirmation preview for new file creations (`write_to_file` without overwrite): renders new content as an addition-only diff preview.
+- Added `/plan` mode to replace legacy `/planning`, and removed `/fast` slash commands: consolidated and simplified execution mode switching around `shift+tab` mode cycling and the `/plan` mode prefix
+- Improved file-edit diff preview rendering: computed accurate line-level diffs with context lines (`3` lines) and hunk separators, capped inline preview height with truncation hints, and added a comment confirmation prompt when exiting the diff view with unsent comments.
+- Improved UI footer keybinding hints across all panels (such as `/tasks`, `/agents`, `/permissions`, and `/mcp`) by replacing hardcoded hint strings with centralized layout helpers that dynamically respect customized global and local keybinding configurations (`keybindings.json`).
+- Improved the multiline conversation rename view in the `/resume` picker by dynamically adjusting input box width and padding, and right-aligning metadata columns (`workspace`, `steps`, `time`) on the top line to prevent horizontal scrolling or layout shifts during active renaming.
+- Fixed the tool confirmation dialog to accurately check normalized file URIs against active workspace directories, resolving an issue where valid in-workspace file creations and reads were incorrectly flagged with an `"Reason: outside workspace"` warning.
+- Fixed workspace initialization failures when launching the CLI inside dot-prefixed directories (such as  .parent_dir/project ) by scoping path exclusion filters strictly to relative paths inside the workspace rather than rejecting dot-prefixed ancestor directories.
+- Fixed the `/agents` view header displaying `agent.json` instead of `agent.md` when creating new subagents.
+- Fixed the `/agents` panel's `"Create New Agents"` section displaying the wrong global configuration directory (`~/.gemini/antigravity-cli/` instead of `~/.gemini/config/`), ensuring users create global subagents in the location actively scanned during startup discovery.
+- Fixed statusline shortcut hints (`? for shortcuts`) and redundant escape hints (`Esc to cancel`) erroneously appearing inside full-screen overlay panels (such as `/changelog`, `/artifact`, and `/settings`) by correctly tracking overlay panel states.
+- Fixed inconsistent timestamp formatting in the `/tasks` panel and task detail views by converting agent-initiated background task timestamps (`time.Time`) from UTC to the local timezone.
+
+## 1.0.16
+
+- Improved the `/tasks` detail panel to automatically scroll to the bottom as new background task logs stream in, and default to the latest output when opened while preserving scroll position if scrolled up manually.
+- Improved model generation resilience by adding automatic client-side retries when encountering transient errors.
+- Fixed dynamically defined subagents by transitioning definitions from JSON to Markdown format, fixing an issue where dynamically created subagents failed to invoke.
+- Fixed a crash occurring when executing background tasks or terminal commands that produce empty outputs (such as `sleep`).
+- Fixed shutdown resource leaks by integrating the shared SQLite summary store for background synchronization and resolving goroutine and database connection leaks on CLI exit.
+- Fixed a permission manager hook error by safely handling empty decision strings returned by pre-tool hooks instead of failing with an "unknown pre-tool hook decision" error.
+
+## 1.0.15
+
+- Introduced a new interactive status indicator below the input box that displays active subagents and background tasks in real-time, making it easy to monitor and navigate parallel workflows at a glance.
+- Added `ctrl+g` on the artifact view to open $EDITOR. Also added a warning confirmation prompt before opening the editor in the artifact detail view if there are unsent comments, and ensured these comments are preserved upon reload if the artifact content was not modified.
+- Added `alt+v` as an alternative paste shortcut on Windows to resolve issues where ctrl+v is intercepted by the terminal emulator, enabling reliable image pasting.
+- Improved the `/permissions` panel to dynamically reload configurations from disk and prevent accidental overwrites.
+- Increased the MCP connection timeout to 60 seconds to improve reliability for slow-starting custom MCP servers.
+- Fixed a bug on Windows where print mode and other non-TUI command outputs were silently discarded when run in non-TTY environments (such as pipes or subprocesses).
+- Fixed Windows editor fallback to use "edit" or "notepad" when the editor setting is "auto" and no editor is configured, instead of attempting to use "vim".
+- Fixed the subagent approval TUI to dynamically render user-defined custom keybindings (such as alternative approval keys) instead of showing hardcoded defaults.
+- Fixed alignment and wrapping issues in the comment editor for multiline comments, ensuring all lines are indented consistently.
+
+## 1.0.14
+
+- Allowed image pasting from the clipboard in local tmux sessions.
+- Removed the max limit for the `/goal` command, allowing goals to run indefinitely until completed or cancelled.
+- Enabled "always proceeds" mode for subagents to auto approve artifacts, preventing them from hanging when the parent is blocked.
+- Fixed plugin import logic to copy the entire plugin directory, preventing it from stripping non-skill directories (like `shared/`).
+- Fixed an MCP configuration path mismatch in the CLI and permission manager to ensure reliable custom MCP server loading.
+- Fixed a TUI layout race condition caused by stale input state in the conversation model.
+- Fixed a bug where the inline viewport was not properly reset after a conversation rewind.
+
+## 1.0.13
+
+- Fixed a bug where the CLI would temporarily render skill commands without their slash prefix during optimistic updates by deferring prefix stripping to the serialization boundary, ensuring the UI always displays exactly what the user typed.
+- Fixed a redundant CLI exit message by removing the "Resume in the same project" hint line, leaving only the standard resume command to simplify exit output.
+- Resolved bugs during UI transitions (such as opening subagent details or logging out) by introducing a unified synchronization mechanism that prevents key lockups and ensures overlay panels like the /help view are properly reset.
+- Improved command permission security by making "Always Approve" rule matching strict (non-regex) by default, while allowing users to explicitly opt-in to regex matching by prepending rules with `regex:`.
+- Improved command permission usability by relaxing redirection checks, allowing safe commands with output redirection (e.g., `tool > file`) to match without requiring strict full-command approval.
+- Fixed a bug in the CLI prompt editor where undo and redo history stacks could become desynchronized during rapid mutations by decoupling the history state into a unified, pointer-backed structure.
+- Fixed a bug where browser-related prompt sections were missing from the agent's prompt registry, ensuring browser-based tasks execute reliably.
+
+## 1.0.12
+
+- Added support for `--project` and `--new-project` launch flags to allow users to explicitly set or create projects, and updated the project resolution logic to default regardless of the active workspace.
+- Added a confirmation prompt when pressing `Esc` in comment mode with unsaved modifications to prevent users from accidentally discarding their work in review views.
+- Added dynamic OSC8 terminal hyperlink support to render clickable links in supporting terminals, with automatic fallback stripping for backward compatibility.
+- Introduced reverse diff cycling navigation mapped to `shift+n` in unified diff review mode to allow users to easily cycle backwards through diff blocks.
+- Improved permission config merging priorities by ensuring project-specific configurations (located in `~/.gemini/config/projects/`) take precedence over global settings in `~/.gemini/antigravity-cli/settings.json`.
+- Fixed a regression where `ctrl+o` scrollback clearing failed by restoring the use of cached fields rather than shared pointer comparisons for trajectory toggle detection.
+- Fixed a rendering bug where Makefile syntax (like `$(call ...)`) inside code blocks was mistakenly parsed and mangled by LaTeX math expansion, by introducing a state machine that restricts expansion to prose segments.
+- Fixed an enterprise network connectivity issue by restoring AES-NI compile-time optimizations, which prevents Deep Packet Inspection (DPI) firewalls from incorrectly flagging and resetting TLS connections.
+- Fixed incorrect key strings by removing the unsupported backtab default binding and correcting invalid `pgdn` references to `pgdown` to align with Bubble Tea v2 canonical names.
+
+## 1.0.11
+
+- Added `ctrl+c` as an exit and interrupt key: the first press cancels active agent operations (like streaming responses), and a double-press triggers the exit flow. Also added a dynamic exit hint in the status line.
+- Fixed `ctrl+d` behavior to act as a forward-delete when the input prompt contains text, only triggering the exit flow when the prompt is empty.
+- Improved `/resume` loading performance by implementing a persistent metadata cache and parallel loader, eliminating severe latency with large conversation histories and preventing background loading log spam.
+- Added an expanded AltScreen view for tool confirmations (accessible via `ctrl+g`), allowing users to view and edit the full command and associated permissions in a dedicated full-screen view, replacing the inline edit (`e`) key.
+- Added the `AGY_CLI_CMD_OUTPUT_PERCENTAGE` environment variable, allowing users to customize the maximum height of command outputs in the TUI as a percentage of the terminal height.
+- Added strict key name validation to the keybindings system to reject invalid key names (like typos) and suggest canonical alternatives, preventing "dead keys" from being registered.
+- Added a validation warning when `ctrl+c` is mapped to a non-default action, clarifying that the system always intercepts `ctrl+c` to interrupt active operations or exit, and providing instructions on how to resolve the warning.
+- Improved command output rendering by making the output height dynamic, improving the readability of commands like `/keybindings`.
+- Improved text rendering with ANSI-aware word wrapping at word boundaries and prevented URLs containing hyphens from being incorrectly split across lines.
+- Improved the `/resume` experience: added support for pasting clipboard text into the search filter and rename fields, upgraded the rename input to a multiline editor to prevent long titles from being hidden, and fixed a bug where the navigation cursor could disappear.
+- Improved keybinding validation warning messages to use user-facing names (e.g., `cli.escape`) instead of internal representation names.
+- Improved startup behavior by only creating the `keybindings.json` configuration file when the user explicitly runs the `/keybindings` customization command, rather than automatically generating it on every startup.
+- Improved keybinding error presentation by replacing the persistent error footer with transient error alerts, freeing up valuable terminal space.
+- Fixed the `ctrl+c` exit safety valve to ensure it always works as an interrupt or exit key, regardless of how it is mapped in the user's custom keybindings configuration.
+- Fixed VCS commit tree rendering to reserve the `@` marker exclusively for the actual current commit in the VCS history rather than the synthetic "Working Copy" entry, helping users easily identify the working copy parent.
+- Fixed authentication error handling to gracefully handle unsigned-in states by returning an empty configuration and suppressing noisy error logs.
+
+## 1.0.10
+
+- Improved compatibility with a broader set of ARM64 devices (e.g. raspberry pi 4b).
+- Added `antigravity_guide` builtin skill to provide instant, in-context reference guides for the Antigravity 2.0, CLI, IDE, and SDK.
+- Improved commit history navigation: scrolling now immediately loads and displays changed files and diffs.
+- Improved Git integration by enabling ASCII node graphs (`git log --graph`) for visual parity with hg/jj.
+- Improved commit hash matching to seamlessly resolve short (6-char) to long (64-char) hashes via prefix comparison.
+- Added alert message type for system errors/warnings, separating them from standard command output.
+- Added the CLI log file path to the `/help` menu for easy troubleshooting.
+- Improved markdown rendering by upgrading `glamour` to v2.0.1 for cleaner headings and block padding.
+- Improved authentication to automatically launch browser sign-in via `rundll32`.
+- Fixed a bug where "ask" permissions were dropped during settings updates, ensuring `settings.json` preservation.
+- Fixed permission engine matching bugs by escaping regex metacharacters (like `$` or `.`) in saved rules, preventing infinite prompt loops.
+- Fixed environment flag parsing to prevent ignored disablement flags.
+- Fixed bash mode argument escaping (preventing swallowed stdout) and defaulted shell resolution to PowerShell.
+
+## 1.0.9
+
+- Added submodule support for plugins installation. External plugin installation now automatically resolves and initializes Git submodules.
+- Optimized customizations permissions: Automatically grants read-only access to the builtin customizations directory, eliminating redundant permission prompts on startup.
+- Improved glamour parser error handling (like nested checkboxes inside list emphasis) and preventing it from crashing the TUI, falling back to raw text with a warning banner.
+- Updated bubbletea to v2.0.7: Resolves a potential TUI panic when terminal input is unavailable, fixes a data race in mouse handling within the Cursed Renderer, and corrects mouse release behavior under the Kitty Keyboard protocol.
+- Hardened command execution permission checks by enforcing strict exact-match verification for PowerShell scripts, complex shell redirections ( `>` , `2>&1` ), and unparseable strings to prevent sandbox escapes.
+- Hardened sandbox execution by adding `.git` to the core list of dangerous paths, preventing unauthorized or destructive repository modifications.
+- Fixed a bug where allowlisted terminal commands with quoted arguments (e.g., `python -c "print(1)"`) would silently fail to match at runtime due to flawed whitespace tokenization.
+- Fixed a bug in headless print mode resumption (`--conversation`/`-c` `-p ...`) where the CLI would dump the entire historical conversation transcript instead of only printing the newly generated response.
+- Fixed a CPU compatibility issue on ARM64 devices without AES hardware support.
+
 ## 1.0.8
 
 - Added support for capturing slash command history, allowing users to use the up arrow to replay previously entered slash commands.
