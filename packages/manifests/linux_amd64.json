@@ -1,5 +1,5 @@
 {
-  "version": "1.0.8",
-  "url": "https://github.com/weby-homelab/antigravity-cli/releases/download/v1.0.8/cli_linux_x64.tar.gz",
-  "sha512": "78426a61f9295d75285d9cdd39e9b9dc2736346468c92ce86a6fde1bcc7a9d6dd32c7bed1903a5deacd874a05d75babf5b907e991a117ad63f33548113c61bc2"
+  "version": "1.1.0",
+  "url": "https://github.com/weby-homelab/antigravity-cli/releases/download/v1.1.0/cli_linux_x64.tar.gz",
+  "sha512": "4baada08e5209775de16f5012f924e3f66d9c9d99e1eda78205da3d9b527225452804a3d573fa54810e2a2e66729a99cd9076442948625a30982acc92381f303"
 }
