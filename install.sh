@@ -315,8 +315,9 @@ except Exception:
 for key, path in [("statusLine", stat_path), ("title", title_path)]:
     if key not in data or not isinstance(data[key], dict):
         data[key] = {}
-    data[key]["command"] = path
-    data[key]["enabled"] = True
+    if not data[key].get("command"):
+        data[key]["command"] = path
+        data[key]["enabled"] = True
 with open(file_path, "w") as f:
     json.dump(data, f, indent=2)
 ' "$SETTINGS_FILE" "$CONFIG_DIR/statusline.sh" "$CONFIG_DIR/title.sh" || true
@@ -332,8 +333,9 @@ except Exception:
 for key, path in [("statusLine", stat_path), ("title", title_path)]:
     if key not in data or not isinstance(data[key], dict):
         data[key] = {}
-    data[key]["command"] = path
-    data[key]["enabled"] = True
+    if not data[key].get("command"):
+        data[key]["command"] = path
+        data[key]["enabled"] = True
 with open(file_path, "w") as f:
     json.dump(data, f, indent=2)
 ' "$SETTINGS_FILE" "$CONFIG_DIR/statusline.sh" "$CONFIG_DIR/title.sh" || true
