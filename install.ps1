@@ -240,13 +240,17 @@ function Invoke-Install {
         } catch {}
     }
 
-    $settings["statusLine"] = @{
-        "command" = $statusScript
-        "enabled" = $true
+    if (-not $settings.ContainsKey("statusLine") -or $null -eq $settings["statusLine"] -or -not $settings["statusLine"].ContainsKey("command") -or [string]::IsNullOrEmpty($settings["statusLine"]["command"])) {
+        $settings["statusLine"] = @{
+            "command" = $statusScript
+            "enabled" = $true
+        }
     }
-    $settings["title"] = @{
-        "command" = $titleScript
-        "enabled" = $true
+    if (-not $settings.ContainsKey("title") -or $null -eq $settings["title"] -or -not $settings["title"].ContainsKey("command") -or [string]::IsNullOrEmpty($settings["title"]["command"])) {
+        $settings["title"] = @{
+            "command" = $titleScript
+            "enabled" = $true
+        }
     }
 
     $settings | ConvertTo-Json -Depth 5 | Out-File $settingsFile -Encoding utf8 -Force
