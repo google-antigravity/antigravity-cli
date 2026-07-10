@@ -2,6 +2,21 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.1.1
+
+- Added the `--agent` flag and `agent/agents` subcommand to external builds, allowing users to select a custom agent at launch and list available agents.
+- Added in-file keyword search (`/`) and jump navigation (`n/N`) to the artifact detail viewer, allowing users to find and cycle through matches without disrupting terminal escape sequences or image grids.
+- Fixed print mode (`--print` / `-p`) silently exiting with a success code and empty output when a request failed server-side, now writing the error to stderr and returning a non-zero exit code.
+- Fixed `agy -p` hanging when run inside a shell script or subprocess by no longer reading stdin when a prompt is provided via a flag.
+- Fixed a data race on the `/btw` cancellation function.
+- Added support for displaying nested subagents (grandchild and deeper) and handling tool confirmation requests across all subagent depths by recursively relaying nested subtrajectory updates to the root conversation.
+- Changed the default mode to respect write_file permissions allowlisted in `settings.json` under `permission.allow`, so pre-approved file writes no longer prompt for review.
+- Changed the default name for the newly initialized project to `CLI Project` for clearer workspace identification.
+- Improved the session exit output by placing the resume command on its own line, making it easier to copy and paste in terminals and tools like tmux.
+- Fixed interactive `/diff` viewer defects in Jujutsu (jj) workspaces by correctly prioritizing `.jj` over `.git` in colocated repos, fixing commit hash regex boundaries, and correctly highlighting active `@` graph nodes.
+- Fixed workspace-local hooks defined in `<workspace>/.agents/hooks.json` not loading after trusting a folder by reloading hooks whenever workspaces change.
+- Fixed misaligned markdown tables containing file links in chat output.
+
 ## 1.1.0
 
 - Agent execution mode cycling is now publicly available: `default` -> `accept-edits` -> `plan`)
