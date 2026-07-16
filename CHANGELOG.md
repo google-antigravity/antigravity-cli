@@ -2,6 +2,25 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.1.3
+
+- Added a `/codesearch` command (aliases `/cs` and `/search`) to interactively search code across your workspace, interpreting queries as regex by default with `-F`/`--literal` for exact matching and `f:`/`file:` globs to include or exclude paths.
+- Added copy-on-select in no-flickering mode so dragging highlights text and releasing the mouse copies the ANSI-stripped selection to the clipboard, and hides the virtual scrollbar so it no longer interferes with copying multi-line output.
+- Added an indicator at each context-compaction boundary so you can see where earlier compaction happened.
+- Improved interactive startup latency by loading skills asynchronously so the CLI no longer blocks on a synchronous, filesystem-heavy skill-discovery pass during bring-up.
+- Improved eligibility error handling by showing errors with a verification URL inline in the input loop instead of stacking them above the screen.
+- Improved customization loading latency for skills, rules, agents, and hooks by consolidating directory walks and caching filesystem lookups to cut redundant I/O during discovery.
+- Removed the padding spaces around inline code for tighter rendering.
+- Fixed code-block corruption where `$..$` math expansion desynced from the Markdown parser and mangled fenced shell snippets such as `git fetch "$GIT_REMOTE"` by detecting fenced code blocks line-by-line.
+- Fixed headless (`-p`) runs hanging or silently auto-approving tools that require a permission confirmation, so the CLI now soft-denies such tools and prints a stderr notice naming the allow-rule needed to permit them.
+- Fixed outside-of-workspace file writes being incorrectly auto-approved in always-proceed mode.
+- Fixed high CPU and unbounded render cost on large conversations in no-flickering mode by making index rebuilds idempotent so the conversation index converges instead of growing on every rebuild.
+- Fixed lingering artifact comments after dismissing the artifact detail view and corrected no-flickering-mode row math so the status line renders correctly within the viewport.
+- Fixed repeated sign-in prompts on Linux caused by the OS keyring: the CLI now bypasses the keyring when no D-Bus session bus is present (headless hosts and containers), skips it for an hour after a timeout, and uses longer keyring timeouts so a slow-but-successful credential read is no longer cut short and forced into a fresh login.
+- Fixed MCP servers hanging the agent indefinitely when a server never responds by bounding connection, tool-listing, and per-tool-call attempts with timeouts.
+- Fixed conversations breaking after certain tool calls, which previously corrupted the conversation history and blocked all further responses.
+- Fixed customization rules being loaded twice when a rules directory is reachable through a symlink.
+
 ## 1.1.2
 
 - Added an `f` (full diff) shortcut to the create-file tool review screen so new-file confirmations can open a full-screen diff view, matching the existing file-edit experience.
