@@ -85,6 +85,7 @@ INPUT=$(cat)
   read -r TOTAL_OUT_TOKENS
   read -r LIMIT_TOKENS
   read -r QUOTA_INFO
+  read -r WORKSPACE_DIR
   read -r _ # Dummy read for "__END__"
 } <<< "$(
   printf "%s\n" "${INPUT:-{}}" | jq -r '
@@ -101,67 +102,96 @@ INPUT=$(cat)
     (.context_window.total_input_tokens // 0),
     (.context_window.total_output_tokens // 0),
     (.context_window.context_window_size // 0),
-    (if .quota then (if .model.display_name | ascii_downcase | contains("gemini") then "gemini:\(.quota["gemini-5h"].remaining_fraction // "null"):\(.quota["gemini-5h"].reset_in_seconds // "null"):\(.quota["gemini-weekly"].remaining_fraction // "null"):\(.quota["gemini-weekly"].reset_in_seconds // "null")" else "3p:\(.quota["3p-5h"].remaining_fraction // "null"):\(.quota["3p-5h"].reset_in_seconds // "null"):\(.quota["3p-weekly"].remaining_fraction // "null"):\(.quota["3p-weekly"].reset_in_seconds // "null")" end) else "" end),
+    (if .quota then (if .model.display_name // "" | ascii_downcase | contains("gemini") then "gemini" + ":" + (if (.quota["gemini-5h"].remaining_fraction | type) == "number" then (.quota["gemini-5h"].remaining_fraction * 100 | round | tostring) else "null" end) + ":" + (.quota["gemini-5h"].reset_in_seconds // "null" | tostring) + ":" + (if (.quota["gemini-weekly"].remaining_fraction | type) == "number" then (.quota["gemini-weekly"].remaining_fraction * 100 | round | tostring) else "null" end) + ":" + (.quota["gemini-weekly"].reset_in_seconds // "null" | tostring) else "3p" + ":" + (if (.quota["3p-5h"].remaining_fraction | type) == "number" then (.quota["3p-5h"].remaining_fraction * 100 | round | tostring) else "null" end) + ":" + (.quota["3p-5h"].reset_in_seconds // "null" | tostring) + ":" + (if (.quota["3p-weekly"].remaining_fraction | type) == "number" then (.quota["3p-weekly"].remaining_fraction * 100 | round | tostring) else "null" end) + ":" + (.quota["3p-weekly"].reset_in_seconds // "null" | tostring) end) else "" end),
+    (.workspace.project_dir // .workspace.current_dir // .cwd // ""),
     "__END__"
-  ' 2>/dev/null || printf "idle\n0\n\nfalse\nfalse\n0\n0\n0\n\n80\n0\n0\n0\n\n__END__\n"
+  ' 2>/dev/null || printf "idle\n0\n\nfalse\nfalse\n0\n0\n0\n\n80\n0\n0\n0\n\n\n__END__\n"
 )"
+
+# ─── Type Sanitization & Defensive Fallbacks ─────────────────────────────────
+# Ensure numeric variables are valid integers to prevent Bash arithmetic/comparison crashes
+if ! [[ "$COLS" =~ ^[0-9]+$ ]]; then
+  COLS=80
+fi
+if ! [[ "$USED_PCT" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+  USED_PCT=0
+fi
+if ! [[ "$BG_TASKS" =~ ^[0-9]+$ ]]; then
+  BG_TASKS=0
+fi
+if ! [[ "$TOTAL_IN_TOKENS" =~ ^[0-9]+$ ]]; then
+  TOTAL_IN_TOKENS=0
+fi
+if ! [[ "$TOTAL_OUT_TOKENS" =~ ^[0-9]+$ ]]; then
+  TOTAL_OUT_TOKENS=0
+fi
+if ! [[ "$LIMIT_TOKENS" =~ ^[0-9]+$ ]]; then
+  LIMIT_TOKENS=0
+fi
+if ! [[ "$ARTIFACTS" =~ ^[0-9]+$ ]]; then
+  ARTIFACTS=0
+fi
+if ! [[ "$SUBAGENTS" =~ ^[0-9]+$ ]]; then
+  SUBAGENTS=0
+fi
 
 # ─── Computed Values ─────────────────────────────────────────────────────────
 # Use LC_NUMERIC=C to prevent bash printf errors in locales that use commas for decimals
 PCT_FMT=$(LC_NUMERIC=C printf "%.1f" "$USED_PCT")
 PCT_INT=${USED_PCT%.*}; PCT_INT=${PCT_INT:-0}
+if ! [[ "$PCT_INT" =~ ^[0-9]+$ ]]; then
+  PCT_INT=0
+fi
 
 # Total token count calculation
 TOTAL_TOKENS=$((TOTAL_IN_TOKENS + TOTAL_OUT_TOKENS))
 TOKENS_FMT=$(format_tokens "$TOTAL_TOKENS")
 LIMIT_FMT=$(format_tokens "$LIMIT_TOKENS")
 
-# Quota processing
+# ─── Escaping Backslashes in User/Session Strings ────────────────────────────
+# Escape backslashes to prevent print/echo -e from parsing them as escape sequences
+SAFE_STATE="${STATE//\\/\\\\}"
+SAFE_VCS_BRANCH="${VCS_BRANCH//\\/\\\\}"
+SAFE_MODEL="${MODEL//\\/\\\\}"
+
+WORKSPACE_NAME=""
+if [ -n "$WORKSPACE_DIR" ] && [ "$WORKSPACE_DIR" != "null" ]; then
+  WORKSPACE_NAME=$(basename "$WORKSPACE_DIR")
+fi
+SAFE_WORKSPACE_NAME="${WORKSPACE_NAME//\\/\\\\}"
+
+# ─── Quota Processing ────────────────────────────────────────────────────────
 QUOTA_NAME=""
 QUOTA_PCT=""
 QUOTA_FMT=""
 QUOTA_FMT_COMPACT=""
 
 if [ -n "$QUOTA_INFO" ] && [ "$QUOTA_INFO" != "null" ]; then
-  # Split by colon: PREFIX:5H_FRAC:5H_RESET:WK_FRAC:WK_RESET
+  # Split by colon: PREFIX:5H_PCT:5H_RESET:WK_PCT:WK_RESET
   QUOTA_PREFIX="${QUOTA_INFO%%:*}"
   rest="${QUOTA_INFO#*:}"
   
-  QUOTA_5H_FRAC="${rest%%:*}"
+  QUOTA_5H_PCT_VAL="${rest%%:*}"
   rest2="${rest#*:}"
   
   QUOTA_5H_RESET="${rest2%%:*}"
   rest3="${rest2#*:}"
   
-  QUOTA_WK_FRAC="${rest3%%:*}"
+  QUOTA_WK_PCT_VAL="${rest3%%:*}"
   QUOTA_WK_RESET="${rest3#*:}"
-  
-  frac_to_pct() {
-    local frac=$1
-    if [ -z "$frac" ] || [ "$frac" = "null" ]; then
-      echo ""
-      return
-    fi
-    if [ "$frac" = "1" ] || [ "$frac" = "1.0" ]; then
-      echo "100"
-      return
-    fi
-    local clean="${frac#0.}"
-    if [ -z "$clean" ] || [ "$clean" = "0" ]; then
-      echo "0"
-      return
-    fi
-    while [ ${#clean} -lt 2 ]; do
-      clean="${clean}0"
-    done
-    local pct="${clean:0:2}"
-    pct="${pct#0}"
-    echo "${pct:-0}"
-  }
   
   format_duration() {
     local sec=$1
-    if [ -z "$sec" ] || [ "$sec" = "null" ] || [ "$sec" -le 0 ]; then
+    if [ -z "$sec" ] || [ "$sec" = "null" ]; then
+      echo ""
+      return
+    fi
+    # Check if sec is a valid integer to prevent comparison syntax errors
+    if ! [[ "$sec" =~ ^[0-9]+$ ]]; then
+      echo ""
+      return
+    fi
+    if [ "$sec" -le 0 ]; then
       echo ""
       return
     fi
@@ -181,8 +211,15 @@ if [ -n "$QUOTA_INFO" ] && [ "$QUOTA_INFO" != "null" ]; then
     fi
   }
   
-  QUOTA_5H_PCT=$(frac_to_pct "$QUOTA_5H_FRAC")
-  QUOTA_WK_PCT=$(frac_to_pct "$QUOTA_WK_FRAC")
+  # Validate percentages are integers
+  QUOTA_5H_PCT=""
+  if [[ "$QUOTA_5H_PCT_VAL" =~ ^[0-9]+$ ]]; then
+    QUOTA_5H_PCT="$QUOTA_5H_PCT_VAL"
+  fi
+  QUOTA_WK_PCT=""
+  if [[ "$QUOTA_WK_PCT_VAL" =~ ^[0-9]+$ ]]; then
+    QUOTA_WK_PCT="$QUOTA_WK_PCT_VAL"
+  fi
   
   QUOTA_5H_RESET_FMT=$(format_duration "$QUOTA_5H_RESET")
   QUOTA_WK_RESET_FMT=$(format_duration "$QUOTA_WK_RESET")
@@ -254,23 +291,29 @@ case "$STATE" in
   thinking) S="${FG_BRIGHT_YELLOW}${B}◆ THINKING${R}" ;;
   working)  S="${FG_BRIGHT_CYAN}${B}⚙ WORKING${R}" ;;
   tool_use) S="${FG_BRIGHT_MAGENTA}${B}🔧 TOOL${R}" ;;
-  *)        S="${FG_WHITE}${B}⏳ $(echo "$STATE" | tr '[:lower:]' '[:upper:]')${R}" ;;
+  *)        S="${FG_WHITE}${B}⏳ $(echo "$SAFE_STATE" | tr '[:lower:]' '[:upper:]')${R}" ;;
 esac
+
+# ─── Workspace Name ──────────────────────────────────────────────────────────
+W=""
+if [ -n "$SAFE_WORKSPACE_NAME" ]; then
+  W="${FG_GRAY}📂 ${B}${SAFE_WORKSPACE_NAME}${R}"
+fi
 
 # ─── VCS Branch ──────────────────────────────────────────────────────────────
 V=""
-if [ -n "$VCS_BRANCH" ]; then
+if [ -n "$SAFE_VCS_BRANCH" ]; then
   if [ "$VCS_DIRTY" = "true" ]; then
-    V="${FG_GRAY} ╱ ${FG_BRIGHT_RED}🌱 ${VCS_BRANCH}${FG_BRIGHT_YELLOW}*${R}"
+    V="${FG_GRAY} ╱ ${FG_BRIGHT_RED}🌱 ${SAFE_VCS_BRANCH}${FG_BRIGHT_YELLOW}*${R}"
   else
-    V="${FG_GRAY} ╱ ${FG_BRIGHT_BLUE}🌱 ${VCS_BRANCH}${R}"
+    V="${FG_GRAY} ╱ ${FG_BRIGHT_BLUE}🌱 ${SAFE_VCS_BRANCH}${R}"
   fi
 fi
 
 # ─── Model ───────────────────────────────────────────────────────────────────
 M=""
-if [ -n "$MODEL" ]; then
-  M="${FG_GRAY} ╱ ${FG_BRIGHT_MAGENTA}${I}${MODEL}${R}"
+if [ -n "$SAFE_MODEL" ]; then
+  M="${FG_GRAY} ╱ ${FG_BRIGHT_MAGENTA}${I}${SAFE_MODEL}${R}"
 fi
 
 # ─── Sandbox Badge ───────────────────────────────────────────────────────────
@@ -318,13 +361,23 @@ done
 CTX="${FG_GRAY}ctx ${BAR_COLOR}${BAR}${R} ${NUM_COLOR}${TOKENS_FMT}/${LIMIT_FMT}${R} ${FG_GRAY}(${PCT_FMT}%)${R}"
 ART_FMT="${FG_GRAY}📦 ${NUM_COLOR}${ARTIFACTS}${R}"
 SUB_FMT="${FG_GRAY}👥 ${NUM_COLOR}${SUBAGENTS}${R}"
-BG_FMT="${FG_GRAY}⚙️ ${NUM_COLOR}${BG_TASKS}${R}"
+
+# Background tasks format with cyan highlight when active (>0)
+if [ "$BG_TASKS" -gt 0 ]; then
+  BG_FMT="${FG_BRIGHT_CYAN}⚙️ ${B}${BG_TASKS}${R}"
+else
+  BG_FMT="${FG_GRAY}⚙️ ${NUM_COLOR}0${R}"
+fi
 
 # ─── Separators ──────────────────────────────────────────────────────────────
 DOT="${FG_GRAY} · ${R}"
 
 # ─── Output ──────────────────────────────────────────────────────────────────
-LINE1="${S}${M}${V}"
+LINE1=""
+if [ -n "$W" ]; then
+  LINE1="${W}${FG_GRAY} ╱ ${R}"
+fi
+LINE1="${LINE1}${S}${M}${V}"
 
 # Construct Line 2 dynamically
 LINE2=" ${CTX}${DOT}${ART_FMT}${DOT}${SUB_FMT}${DOT}${BG_FMT}"
@@ -342,17 +395,20 @@ elif [ "$COLS" -ge 80 ]; then
   echo -e "${FG_GRAY}╰─${R}${LINE2}"
 else
   # Narrow: compact two-line, minimal chrome
-  # Line 1: State + Branch
+  # Line 1: Workspace + State + Branch
+  line1_compact=""
+  if [ -n "$W" ]; then
+    line1_compact="${W}${FG_GRAY} ╱ ${R}"
+  fi
+  line1_compact="${line1_compact}${S}"
   if [ -n "$VCS_BRANCH" ]; then
     if [ "$VCS_DIRTY" = "true" ]; then
-      V_COMPACT="${FG_GRAY} ╱ ${FG_BRIGHT_RED}🌱 ${VCS_BRANCH}${FG_BRIGHT_YELLOW}*${R}"
+      line1_compact="${line1_compact}${FG_GRAY} ╱ ${R}${FG_BRIGHT_RED}🌱 ${VCS_BRANCH}${FG_BRIGHT_YELLOW}*${R}"
     else
-      V_COMPACT="${FG_GRAY} ╱ ${FG_BRIGHT_BLUE}🌱 ${VCS_BRANCH}${R}"
+      line1_compact="${line1_compact}${FG_GRAY} ╱ ${R}${FG_BRIGHT_BLUE}🌱 ${VCS_BRANCH}${R}"
     fi
-  else
-    V_COMPACT=""
   fi
-  echo -e "${S}${V_COMPACT}"
+  echo -e "${line1_compact}"
   
   # Line 2: Context pct + compact resource indicators
   COMPACT_STATS="${FG_GRAY}ctx ${NUM_COLOR}${PCT_FMT}%${R}${DOT}${ART_FMT}${DOT}${BG_FMT}"
