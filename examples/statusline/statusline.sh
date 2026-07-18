@@ -2,7 +2,9 @@
 set -euo pipefail
 
 # Detect color scheme from user settings to adapt foreground colors
-THEME=$(jq -r '.colorScheme // "terminal"' ~/.gemini/antigravity-cli/settings.json 2>/dev/null || echo "terminal")
+CONFIG_DIR="${ANTIGRAVITY_CONFIG_DIR:-${AGY_CONFIG_DIR:-$HOME/.gemini/antigravity-cli}}"
+THEME=$(jq -r '.colorScheme // "terminal"' "${CONFIG_DIR}/settings.json" 2>/dev/null || echo "terminal")
+
 
 # ─── ANSI Helpers (Standard 16-color palette only) ───────────────────────────
 R="\033[0m"         # Reset
