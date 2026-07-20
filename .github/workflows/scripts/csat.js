@@ -45,9 +45,9 @@ const CONSTANT_VALUES = {
     CSAT: {
       YES: 'Yes',
       NO: 'No',
-      BASE_URL: 'https://docs.google.com/forms/d/e/1FAIpQLSeuqIP8vcNJv0Gv84ruyxmvrMQElhB2L0saRtuapK7c28QMWQ/viewform?',
-      SATISFACTION_PARAM: 'entry.2064764942=',
-      ISSUEID_PARAM: '&entry.666097176=',
+      BASE_URL: 'https://docs.google.com/forms/d/e/1FAIpQLSfxqjtTIt1zOslbLI1OCtMMRElYe69e2oBdLjy6N47NpKiIZA/viewform?resourcekey=0-vJSFmZeIksNOSV89szHuCg&',
+      SATISFACTION_PARAM: 'entry.1036457101=',
+      ISSUEID_PARAM: '&entry.375200511=',
       MSG: 'Are you satisfied with the resolution of your issue?',
     }
   }
