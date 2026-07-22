@@ -343,4 +343,43 @@ fi
 
 echo "✓ Custom statusline and terminal title configured and enabled by default."
 
+# 9. Shell Completion Installation & Permission Sanitization
+echo "⠋ Installing shell autocompletions..."
+SHELL_NAME="$(basename "${SHELL:-bash}")"
+case "$SHELL_NAME" in
+  zsh)
+    ZSH_COMP_DIR="${ZDOTDIR:-$HOME}/.zsh/completions"
+    mkdir -p "$ZSH_COMP_DIR" 2>/dev/null || true
+    chmod 755 "$ZSH_COMP_DIR" 2>/dev/null || true
+    if [ "$LOCAL_MODE" = true ] && [ -f "$SCRIPT_DIR/examples/completions/agy.zsh" ]; then
+      cp "$SCRIPT_DIR/examples/completions/agy.zsh" "$ZSH_COMP_DIR/_agy"
+    else
+      download_file "https://raw.githubusercontent.com/weby-homelab/antigravity-cli/main/examples/completions/agy.zsh" "$ZSH_COMP_DIR/_agy" || true
+    fi
+    chmod 644 "$ZSH_COMP_DIR/_agy" 2>/dev/null || true
+    echo "✓ Zsh autocompletions installed at $ZSH_COMP_DIR/_agy"
+    ;;
+  fish)
+    FISH_COMP_DIR="$HOME/.config/fish/completions"
+    mkdir -p "$FISH_COMP_DIR" 2>/dev/null || true
+    if [ "$LOCAL_MODE" = true ] && [ -f "$SCRIPT_DIR/examples/completions/agy.fish" ]; then
+      cp "$SCRIPT_DIR/examples/completions/agy.fish" "$FISH_COMP_DIR/agy.fish"
+    else
+      download_file "https://raw.githubusercontent.com/weby-homelab/antigravity-cli/main/examples/completions/agy.fish" "$FISH_COMP_DIR/agy.fish" || true
+    fi
+    chmod 644 "$FISH_COMP_DIR/agy.fish" 2>/dev/null || true
+    echo "✓ Fish autocompletions installed at $FISH_COMP_DIR/agy.fish"
+    ;;
+  *)
+    BASH_COMP_DIR="$HOME/.local/share/bash-completion/completions"
+    mkdir -p "$BASH_COMP_DIR" 2>/dev/null || true
+    if [ "$LOCAL_MODE" = true ] && [ -f "$SCRIPT_DIR/examples/completions/agy.bash" ]; then
+      cp "$SCRIPT_DIR/examples/completions/agy.bash" "$BASH_COMP_DIR/agy"
+    else
+      download_file "https://raw.githubusercontent.com/weby-homelab/antigravity-cli/main/examples/completions/agy.bash" "$BASH_COMP_DIR/agy" || true
+    fi
+    chmod 644 "$BASH_COMP_DIR/agy" 2>/dev/null || true
+    echo "✓ Bash autocompletions installed at $BASH_COMP_DIR/agy"
+    ;;
+esac
 
