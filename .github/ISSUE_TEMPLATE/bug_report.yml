@@ -1,0 +1,65 @@
+name: Antigravity CLI - Bug Report
+description: File a bug report for the Antigravity CLI
+title: "[Bug]: "
+labels: ["bug"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > [!IMPORTANT]
+        > Thanks for taking the time to fill out this bug report!
+        > Please search **[existing issues](https://github.com/google-antigravity/antigravity-cli/issues)** before creating a new report.
+
+  - type: input
+    id: version
+    attributes:
+      label: Antigravity CLI Version
+      description: What version of agy are you using? (Run `agy --version`)
+      placeholder: e.g. 1.1.5
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: What OS are you running on?
+      options:
+        - Linux (Ubuntu/Debian/Fedora/Arch)
+        - macOS (Apple Silicon / arm64)
+        - macOS (Intel / x64)
+        - Windows 10/11 (PowerShell / CMD)
+        - Windows WSL2
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe what happened...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: How can maintainers reproduce the issue?
+      placeholder: |
+        1. Run command '...'
+        2. Execute step '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs or Console Output
+      description: Paste relevant terminal output or log snippets.
+      render: shell
+    validations:
+      required: false

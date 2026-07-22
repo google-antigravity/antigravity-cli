@@ -1,0 +1,37 @@
+name: Antigravity CLI - Feature Request
+description: Propose a new feature or improvement for Antigravity CLI
+title: "[Feature Request]: "
+labels: ["type: feature request"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > [!IMPORTANT]
+        > Thanks for taking the time to suggest a feature request!
+        > Please search **[existing issues](https://github.com/google-antigravity/antigravity-cli/issues)** to see if a similar feature has already been requested.
+
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Feature Description
+      description: What feature or enhancement would you like to see?
+      placeholder: Describe the feature clearly...
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case / Rationale
+      description: What problem does this solve for your workflow?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative solutions or workarounds you have considered?
+    validations:
+      required: false

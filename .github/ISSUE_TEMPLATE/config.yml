@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Google AI Developer Forum
+    url: https://discuss.ai.google.dev/
+    about: Ask questions and discuss Antigravity CLI with the community
+  - name: Antigravity CLI Documentation
+    url: https://antigravity.google/docs/cli/overview
+    about: Read official manuals and documentation
