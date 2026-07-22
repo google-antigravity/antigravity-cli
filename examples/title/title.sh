@@ -2,16 +2,24 @@
 set -euo pipefail
 
 # Read JSON payload from stdin
-DATA=$(cat)
+if [ -t 0 ]; then
+  DATA="{}"
+else
+  DATA=$(cat)
+fi
 
 # Extract fields using jq
 eval $(echo "$DATA" | jq -r '
   "STATE=\"\(.agent_state // "idle")\"
-   CWD=\"\(.workspace.current_dir // "")\"
+   CWD=\"\(.cwd // .workspace.current_dir // "")\"
   "
 ' 2>/dev/null || echo 'STATE="idle" CWD=""')
 
-# Try to extract CitC workspace name from CWD
+# Try to extract CitC workspace name or directory from CWD
+if [ -z "$CWD" ]; then
+  CWD="$(pwd)"
+fi
+
 if [ -n "$CWD" ]; then
   if [[ "$CWD" =~ /google/src/cloud/[^/]+/([^/]+) ]]; then
     WORKSPACE="${BASH_REMATCH[1]}"

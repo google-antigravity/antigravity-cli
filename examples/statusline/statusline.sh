@@ -1,6 +1,10 @@
 #!/bin/bash
 set -euo pipefail
-INPUT_JSON=$(cat)
+if [ -t 0 ]; then
+  INPUT_JSON="{}"
+else
+  INPUT_JSON=$(cat)
+fi
 
 
 # ─── ANSI Helpers (Standard 16-color palette only) ───────────────────────────
