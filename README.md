@@ -7,6 +7,9 @@
 </p>
 
 <h1 align="center">🚀 Antigravity CLI</h1>
+<p align="center">
+  <a href="https://antigravity.google/docs/cli/overview">Official Docs</a> · <a href="https://antigravity.google/product/antigravity-cli">Official Website</a>
+</p>
 
 <p align="center">
   <strong>Community-Fork & Hardened Offline Version of google-antigravity/antigravity-cli with automatic statusline & window title setup</strong>
@@ -14,7 +17,7 @@
 
 <p align="center">
   <a href="https://github.com/weby-homelab/antigravity-cli"><img src="https://img.shields.io/badge/fork-google--antigravity-8a2be2?style=for-the-badge&logo=github" alt="GitHub Fork" /></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.1.0-success?style=for-the-badge&logo=git" alt="Version" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.1.5-success?style=for-the-badge&logo=git" alt="Version" /></a>
   <a href="https://antigravity.google/terms"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=for-the-badge" alt="License" /></a>
   <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey?style=for-the-badge" alt="Supported Platforms" />
 </p>
