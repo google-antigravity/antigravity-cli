@@ -12,13 +12,18 @@ DOWNLOAD_BASE_URL="https://raw.githubusercontent.com/weby-homelab/antigravity-cl
 TARGET_DIR="$HOME/.local/bin"
 CUSTOM_DIR=""
 
+SKIP_STATUSLINE=false
+SKIP_TITLE=false
+
 # Helper: Display usage instructions
 show_usage() {
     echo "Usage: install.sh [options]"
     echo ""
     echo "Options:"
-    echo "  -d, --dir <path>    Specify a custom directory to install the binary"
-    echo "  -h, --help          Display this help menu"
+    echo "  -d, --dir <path>     Specify a custom directory to install the binary"
+    echo "  --no-statusline      Skip automatic statusline script configuration"
+    echo "  --no-title           Skip automatic terminal title script configuration"
+    echo "  -h, --help           Display this help menu"
     echo ""
 }
 
@@ -32,6 +37,12 @@ while [ "$#" -gt 0 ]; do
             fi
             CUSTOM_DIR="$2"
             shift
+            ;;
+        --no-statusline)
+            SKIP_STATUSLINE=true
+            ;;
+        --no-title)
+            SKIP_TITLE=true
             ;;
         -h|--help)
             show_usage
@@ -271,76 +282,69 @@ else
 fi
 
 # 8. Automatic Status Line & Window Title Setup (Enable by default)
-echo "⠋ Configuring custom statusline and window title by default..."
+if [ "$SKIP_STATUSLINE" = false ] || [ "$SKIP_TITLE" = false ]; then
+  echo "⠋ Configuring custom statusline and window title by default..."
 
-CONFIG_DIR="$HOME/.gemini/antigravity-cli"
-case "${os:-$(uname -s)}" in
-  darwin|Darwin*)
-    CONFIG_DIR="$HOME/Library/Application Support/antigravity-cli"
-    ;;
-esac
-mkdir -p "$CONFIG_DIR"
+  CONFIG_DIR="$HOME/.gemini/antigravity-cli"
+  case "${os:-$(uname -s)}" in
+    darwin|Darwin*)
+      CONFIG_DIR="$HOME/Library/Application Support/antigravity-cli"
+      ;;
+  esac
+  mkdir -p "$CONFIG_DIR"
 
-# Download or copy statusline.sh
-if [ "$LOCAL_MODE" = true ] && [ -f "$SCRIPT_DIR/examples/statusline/statusline.sh" ]; then
-  cp "$SCRIPT_DIR/examples/statusline/statusline.sh" "$CONFIG_DIR/statusline.sh"
-else
-  download_file "https://raw.githubusercontent.com/weby-homelab/antigravity-cli/main/examples/statusline/statusline.sh" "$CONFIG_DIR/statusline.sh" || true
-fi
-chmod +x "$CONFIG_DIR/statusline.sh" 2>/dev/null || true
+  if [ "$SKIP_STATUSLINE" = false ]; then
+    if [ "$LOCAL_MODE" = true ] && [ -f "$SCRIPT_DIR/examples/statusline/statusline.sh" ]; then
+      cp "$SCRIPT_DIR/examples/statusline/statusline.sh" "$CONFIG_DIR/statusline.sh"
+    else
+      download_file "https://raw.githubusercontent.com/weby-homelab/antigravity-cli/main/examples/statusline/statusline.sh" "$CONFIG_DIR/statusline.sh" || true
+    fi
+    chmod +x "$CONFIG_DIR/statusline.sh" 2>/dev/null || true
+  fi
 
-# Download or copy title.sh
-if [ "$LOCAL_MODE" = true ] && [ -f "$SCRIPT_DIR/examples/title/title.sh" ]; then
-  cp "$SCRIPT_DIR/examples/title/title.sh" "$CONFIG_DIR/title.sh"
-else
-  download_file "https://raw.githubusercontent.com/weby-homelab/antigravity-cli/main/examples/title/title.sh" "$CONFIG_DIR/title.sh" || true
-fi
-chmod +x "$CONFIG_DIR/title.sh" 2>/dev/null || true
+  if [ "$SKIP_TITLE" = false ]; then
+    if [ "$LOCAL_MODE" = true ] && [ -f "$SCRIPT_DIR/examples/title/title.sh" ]; then
+      cp "$SCRIPT_DIR/examples/title/title.sh" "$CONFIG_DIR/title.sh"
+    else
+      download_file "https://raw.githubusercontent.com/weby-homelab/antigravity-cli/main/examples/title/title.sh" "$CONFIG_DIR/title.sh" || true
+    fi
+    chmod +x "$CONFIG_DIR/title.sh" 2>/dev/null || true
+  fi
 
-# Update settings.json to enable them
-SETTINGS_FILE="$CONFIG_DIR/settings.json"
-if [ ! -f "$SETTINGS_FILE" ]; then
-  echo "{}" > "$SETTINGS_FILE"
-fi
+  SETTINGS_FILE="$CONFIG_DIR/settings.json"
+  if [ ! -f "$SETTINGS_FILE" ]; then
+    echo "{}" > "$SETTINGS_FILE"
+  fi
 
-if command -v python3 >/dev/null 2>&1; then
-  python3 -c '
+  if command -v python3 >/dev/null 2>&1 || command -v python >/dev/null 2>&1; then
+    PY_BIN="python3"
+    command -v python3 >/dev/null 2>&1 || PY_BIN="python"
+    "$PY_BIN" -c '
 import json, sys
-file_path, stat_path, title_path = sys.argv[1], sys.argv[2], sys.argv[3]
+file_path, stat_path, title_path, skip_stat, skip_title = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5]
 try:
     with open(file_path, "r") as f:
         data = json.load(f)
 except Exception:
     data = {}
-for key, path in [("statusLine", stat_path), ("title", title_path)]:
-    if key not in data or not isinstance(data[key], dict):
-        data[key] = {}
-    if not data[key].get("command"):
-        data[key]["command"] = path
-        data[key]["enabled"] = True
+if skip_stat != "true":
+    if "statusLine" not in data or not isinstance(data["statusLine"], dict):
+        data["statusLine"] = {}
+    if not data["statusLine"].get("command"):
+        data["statusLine"]["command"] = stat_path
+        data["statusLine"]["enabled"] = True
+if skip_title != "true":
+    if "title" not in data or not isinstance(data["title"], dict):
+        data["title"] = {}
+    if not data["title"].get("command"):
+        data["title"]["command"] = title_path
+        data["title"]["enabled"] = True
 with open(file_path, "w") as f:
     json.dump(data, f, indent=2)
-' "$SETTINGS_FILE" "$CONFIG_DIR/statusline.sh" "$CONFIG_DIR/title.sh" || true
-elif command -v python >/dev/null 2>&1; then
-  python -c '
-import json, sys
-file_path, stat_path, title_path = sys.argv[1], sys.argv[2], sys.argv[3]
-try:
-    with open(file_path, "r") as f:
-        data = json.load(f)
-except Exception:
-    data = {}
-for key, path in [("statusLine", stat_path), ("title", title_path)]:
-    if key not in data or not isinstance(data[key], dict):
-        data[key] = {}
-    if not data[key].get("command"):
-        data[key]["command"] = path
-        data[key]["enabled"] = True
-with open(file_path, "w") as f:
-    json.dump(data, f, indent=2)
-' "$SETTINGS_FILE" "$CONFIG_DIR/statusline.sh" "$CONFIG_DIR/title.sh" || true
-fi
+' "$SETTINGS_FILE" "$CONFIG_DIR/statusline.sh" "$CONFIG_DIR/title.sh" "$SKIP_STATUSLINE" "$SKIP_TITLE" || true
+  fi
 
-echo "✓ Custom statusline and terminal title configured and enabled by default."
+  echo "✓ Custom statusline and terminal title configured and enabled by default."
+fi
 
 
