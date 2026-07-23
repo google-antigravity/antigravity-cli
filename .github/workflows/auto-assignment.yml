@@ -4,9 +4,6 @@ on:
   issues:
     types:
       - opened
-  pull_request:
-    types:
-      - opened
 
 permissions:
   contents: read
@@ -17,12 +14,11 @@ concurrency:
 
 jobs:
   welcome:
-    name: Auto Assign Issues and PRs
+    name: Auto Assign Issues
     runs-on: ubuntu-latest
     permissions:
       contents: read
       issues: write # Write access needed to add assignees to issues
-      pull-requests: write # Write access needed to add assignees to pull requests
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
