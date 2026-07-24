@@ -2,6 +2,16 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.1.7
+
+- Improved permission prompts for compound shell commands so the full command is shown when any part of it needs approval.
+- Improved headless print mode by adding a `cache_read_tokens` field to the `json` and `stream-json` usage output, so non-interactive consumers can attribute prompt-cache hits.
+- Fixed disabled plugins still running their hooks and contributing other customizations, which could keep a broken hook active and break file-editing tools even after the plugin was turned off.
+- Fixed MCP OAuth against providers that do not strictly follow the spec (such as Salesforce and Atlassian) by relaxing issuer validation and including the `refresh_token` grant.
+- Fixed `/btw` failing with a "parent conversation not found" error when used as the very first action in a fresh session.
+- Fixed clipboard corruption of CJK and other non-ASCII text when copying on Windows.
+- Fixed print mode (`-p`) sending a prompt before the account-eligibility check finished, which let ineligible accounts bypass the check the interactive UI enforces.
+
 ## 1.1.6
 
 - Custom Agents (Markdown Format). Added support for defining custom agents using Markdown files (`agent.md`) with YAML frontmatter and H1-delimited system prompts. Markdown agents support `mainAgent`, `subagent`, `hidden`, `inheritMcp`, and `commandExecutionPolicy` frontmatter fields for fine-grained control over agent behavior. Dynamically defined subagents (via `define_subagent`) now also write Markdown format so they resolve correctly on external builds.
