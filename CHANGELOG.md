@@ -2,6 +2,27 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.1.6
+
+- Custom Agents (Markdown Format). Added support for defining custom agents using Markdown files (`agent.md`) with YAML frontmatter and H1-delimited system prompts. Markdown agents support `mainAgent`, `subagent`, `hidden`, `inheritMcp`, and `commandExecutionPolicy` frontmatter fields for fine-grained control over agent behavior. Dynamically defined subagents (via `define_subagent`) now also write Markdown format so they resolve correctly on external builds.
+- Added an optional index argument to `/copy` so `/copy <n>` copies the n-th most recent response to the clipboard, while `/copy` and `/copy 1` still copy the latest.
+- Improved `/codesearch` to render results progressively as they stream in, showing a live count while loading and letting you cancel an in-flight search with `Esc` instead of blocking until the whole search finishes.
+- Improved default file access by granting read access to the system temporary directory out of the box, resolved correctly per platform, so agents no longer trigger permission prompts when reading temporary files.
+- Improved support for markdown-based custom agents so custom agent management and selection behave more consistently.
+- Improved customization discovery by sorting rules and discovered paths deterministically, preventing unstable prompt ordering and needless prompt-cache misses.
+- Improved overall reliability and stability across the CLI with additional hardening and fixes for intermittent failures in background tasks, print mode, and interactive flows.
+- Fixed switching from a custom agent back to the default agent via `/agents`, which previously failed silently and left the conversation stuck on the custom agent's persona.
+- Fixed a crash when a command was blocked by sandbox permissions before its output was captured, and cleaned up the permission approval and denial messages.
+- Fixed the artifact viewer emitting garbage escape bytes when cycling to image mode on terminals that are detected but cannot actually render Kitty graphics, such as iTerm2.
+- Fixed the first keystroke (such as `Esc`) being dropped when opening the first artifact view on some non-Kitty terminals.
+- Fixed conversation jitter and a stranded input box during streaming so transient markdown reflow no longer shifts the pending line and input box upward.
+- Fixed print mode (`-p`) surfacing the real conversation-creation failure instead of a misleading "no active conversation" error.
+- Fixed the message list dropping its header when rewinding or resetting conversation steps.
+- Fixed a background auto-updater double-spawn race where two processes could each spawn an updater within a single update window.
+- Fixed sandbox error reporting so blocked actions are recorded even when the network proxy is disabled.
+- Fixed the screen going blank after the authentication page.
+- Fixed the `ctrl+b` shortcut being hardcoded to background shell commands even when none were running, so a remapped `ctrl+b` is now respected whenever there are no running shell commands in the conversation.
+
 ## 1.1.5
 
 - Added a `/effort` command to view and change the current model's reasoning effort, with a left/right timeline-gauge picker and a direct `/effort <level>` form so you can trade latency for depth on the fly.
