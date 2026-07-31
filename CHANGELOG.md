@@ -2,6 +2,20 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.1.9
+
+- Added slash-command and skill expansion to print mode, so a headless run such as `-p "/my-skill review this diff"` now resolves and applies the skill instead of sending it as literal text, with `--disable-slash-commands` to opt out.
+- Improved interactive startup so a slow or hanging MCP server no longer stalls the first agent turn, loading MCP servers in the background for the interactive session while headless and one-shot runs keep blocking so their single scripted turn still sees the full toolset.
+- Improved permission grants so a pattern approved at a prompt is recorded for the rest of the conversation, letting later commands that match it run without prompting again.
+- Improved the default system temporary-directory grant to cover writes as well as reads, so agents no longer trigger a permission prompt when creating or updating files there.
+- Fixed stop hooks that always block hanging the agent forever; after a configurable number of consecutive continuations, the hook can no longer block and the turn ends normally.
+- Fixed `PostToolUse` hooks firing on non-tool steps such as user input and model responses, which also caused them to ignore their configured matchers.
+- Fixed slash commands not being recognized when separated from their arguments by a newline or tab, so a prompt starting with a command followed by a newline is now parsed as a command instead of being sent verbatim.
+- Fixed deleting into a collapsed paste placeholder removing one character at a time, which left a visible fragment in the prompt while the full pasted content was still submitted; the block is now deleted atomically.
+- Fixed the artifact viewer losing syntax highlighting when returning from the editor view, and returning to the wrong panel when exiting the artifact detail view.
+- Fixed the headless `stream-json` `init` event advertising tools that are not available in your build.
+- Fixed MCP servers forcing a full re-authentication after a dropped connection.
+
 ## 1.1.8
 
 - Print mode (`-p` / `--print`) now supports structured, machine-readable output via the `--output-format` flag (`text` (default), `json`, or `stream-json`), so headless runs in CI, eval harnesses, and scripts can consume the CLI's output programmatically; these flags are now discoverable in `--help`.
