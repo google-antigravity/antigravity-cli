@@ -2,6 +2,27 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.1.10
+
+- Added Business sign-in for Gemini Enterprise accounts, so you can authenticate with a Google Cloud project under Google Cloud terms, use a license seat allocated or auto-assigned from your organization's GE-Standard or GE-Plus subscription, run inference in a chosen region, and have your organization's administrator controls applied to various features.
+- Added Workforce Identity Federation sign-in for enterprise users, available as the `Use advanced SSO config` option on the Google Cloud sign-in screen, so organizations that federate identity through an external provider can authenticate with their own identity provider.
+- Added sign-in with Application Default Credentials so you can use Agent Platform.
+- Added a non-blocking advisory banner when the same conversation is already open in another CLI instance on the same machine, pointing at `/fork` so two sessions no longer interleave writes into one trajectory.
+- Improved the terminal sandbox by granting read-only rather than writable access to a Git repository's `.git` directory, so the agent can inspect repository metadata without being able to rewrite it from inside the sandbox.
+- Improved hook ordering so hooks defined in `hooks.json` run before the built-in termination checks, which lets `PostInvocation` hooks observe the final invocation of a turn and lets `Stop` hooks run at all instead of sitting unreachable behind the built-ins.
+- Improved the `schedule` tool to accept `DurationSeconds` and `MaxIterations` when a model emits them as bare JSON numbers rather than strings, accepting integral values and rejecting non-integral ones with a clear error instead of failing the call.
+- Fixed `--model` and `--effort` being ignored in interactive sessions and in headless `-p` runs, where the flags were applied after model configuration had already been initialized so the run silently fell back to the persisted or default model.
+- Fixed a bare `--effort` resolving against the default model instead of the model you actually have selected, which could silently move you to a different model.
+- Fixed stopping a subagent tree stopping only the conversation it was invoked from, while every descendant subagent and the background tasks they owned kept running and the CLI still reported them as killed.
+- Fixed a forced-continuation deadlock where a coordinator waiting on active subagents or background tasks would loop injecting empty continue steps until it hit the invocation limit, wasting tokens and blocking progress.
+- Fixed the spacebar not toggling an option in multi-select prompts, including the `ask_question` dialog and the onboarding import checkbox, which left `x` as the only working toggle; the hint bar now advertises it.
+- Fixed the Left and Right arrow keys being captured to navigate the input box suggestion dropdown, so you can move the cursor and edit text again while suggestions are showing.
+- Fixed the model picker's "No models available" state rendering without its header and footer, so it now shows the standard chrome and an `esc` hint to go back.
+- Fixed tools that an MCP server marks to always run in the background executing as blocking calls that stalled the turn.
+- Fixed an MCP process leak when a server connection dropped unexpectedly.
+- Fixed the artifact viewer corrupting plain documents by horizontally clipping every document rather than only the diagram artifacts that need it.
+- Fixed the sandbox not recording blocked network requests when the command itself exited successfully, which hid the fact that a request had been denied.
+
 ## 1.1.9
 
 - Added slash-command and skill expansion to print mode, so a headless run such as `-p "/my-skill review this diff"` now resolves and applies the skill instead of sending it as literal text, with `--disable-slash-commands` to opt out.
