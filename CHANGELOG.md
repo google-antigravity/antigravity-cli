@@ -2,6 +2,27 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.1.11
+
+- Added a Vim editing mode, off by default and switched on from `/settings` under `Editor Mode`, bringing modal editing to the prompt with Normal, Insert, Visual and Visual Line modes, a mode badge in the status line and a Vim tab in `/help`, and covering the `h`/`j`/`k`/`l`, `w`/`b`/`e` and `W`/`B`/`E` motions, the `0`/`^`/`$`/`gg`/`G` boundaries, the `f`/`F`/`t`/`T` character searches with their `;` and `,` repeats, the `i`/`a`/`I`/`A` insert entries, the `d`/`c`/`y` operators alongside `x`, `D` and `C` filling the unnamed register for `p`, and the `iw`/`aw`/`iW`/`aW`/`ip`/`ap` text objects.
+- Added Vim-aware submission so a prompt can be sent without leaving modal editing, through an `Editor Mode > Insert First` toggle that opens the prompt in Insert mode where a bare `Enter` submits and a modified key such as `shift+enter` or `ctrl+j` inserts a newline, `ctrl+s` and `ctrl+enter` keys that submit from Normal mode, an `Enter` binding available as `vim.insert.submit`, and the full set of `vim.*` scopes in `keybindings.json` for remapping any of it.
+- Added Vim editing to the comment editors in the diff and artifact-detail views, whose footer hints follow the active mode rather than showing one fixed set of bindings, and made a collapsed block behave as a single unit under Vim motions.
+- Added non-interactive answers for the read-only slash commands in print mode, so `-p "/usage"`, `/quota`, `/credits`, `/model`, `/effort` and `/skills` emit one tab-separated record per line — or a structured payload under `--output-format json` and `stream-json` — without starting an agent turn, spending quota, or leaving a conversation behind.
+- Added an explicit refusal for the remaining interactive-only slash commands in print mode, which previously fell through as literal prompt text and let the model answer as though the command had run, so `-p "/clear"` reported the context cleared while nothing was cleared; each now fails with the flag or subcommand that replaces it.
+- Improved plugin enable and disable so `config.json` is the only place enablement lives, seeded once from each plugin's manifest, which stops a plugin that later ships `"disabled": true` from switching itself off under someone who was already running it and stops a shipped-default change from moving every user on the next release.
+- Improved the artifact detail view by wrapping long lines in code files instead of clipping them at the right edge.
+- Improved model retries by honoring the server-supplied retry delay instead of the client's own backoff, so a retry after a rate limit or an overload waits exactly as long as the server asks.
+- Improved model-loading errors so a permission failure such as a missing license or a missing IAM role is shown as itself, with a troubleshooting link, instead of a generic failure during the run.
+- Fixed an allowlist entry that tokenizes to zero command words — `command(time)`, a comment-only entry, or an empty compound such as `()` — matching every command and silently auto-approving anything the agent ran; such an entry now matches nothing.
+- Fixed commands being auto-approved while the session was in request-review or strict permission mode.
+- Fixed admin controls being skipped for MCP servers at startup, where a fetch made before authentication cached "admin controls not applicable" and allowed every server for the next five minutes, and fixed the built-in Chrome DevTools MCP server being blocked outright by admin controls.
+- Fixed MCP progress callbacks being dropped and the task log file not being initialized, so long-running MCP tool calls report progress again.
+- Fixed a slash command receiving the collapsed `[Pasted text #N]` placeholder instead of the pasted content when its argument was pasted into the prompt.
+- Fixed the prompt saving the typed prefix rather than the completed command name to history when an autocompleted slash command was submitted, so up-arrow recall replays what actually ran, and made an alias require an exact match before auto-executing so a partial alias fills the prompt instead of running a command you did not finish typing.
+- Fixed an asynchronous settings refresh re-enabling the feedback survey partway through a print-mode run that had switched it off.
+- Fixed spurious "Out of credits" errors, where an empty credits response was read as a balance of zero.
+- Fixed the "Use AI Credits" setting being offered to accounts signed in through a Google Cloud project or application default credentials, where it does not apply.
+
 ## 1.1.10
 
 - Added Business sign-in for Gemini Enterprise accounts, so you can authenticate with a Google Cloud project under Google Cloud terms, use a license seat allocated or auto-assigned from your organization's GE-Standard or GE-Plus subscription, run inference in a chosen region, and have your organization's administrator controls applied to various features.
