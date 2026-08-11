@@ -4,12 +4,16 @@ set -euo pipefail
 # Read JSON payload from stdin
 DATA=$(cat)
 
-# Extract fields using jq
-eval $(echo "$DATA" | jq -r '
-  "STATE=\"\(.agent_state // "idle")\"
-   CWD=\"\(.workspace.current_dir // "")\"
-  "
-' 2>/dev/null || echo 'STATE="idle" CWD=""')
+# Extract fields safely using jq without eval
+{
+  read -r STATE
+  read -r CWD
+} <<< "$(
+  jq -r '
+    (.agent_state // "idle"),
+    (.workspace.current_dir // "")
+  ' <<< "$DATA" 2>/dev/null || printf "idle\n\n"
+)"
 
 # Try to extract CitC workspace name from CWD
 if [ -n "$CWD" ]; then

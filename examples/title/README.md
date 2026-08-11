@@ -3,7 +3,7 @@
 This directory contains an example script (`title.sh`) that demonstrates how to dynamically customize the window title for the Antigravity CLI based on the agent's current state.
 
 For more details on how to use and configure the title script, please refer to the official public documentation:
-[https://antigravity.google/docs/cli-title](https://antigravity.google/docs/cli-title)
+[https://antigravity.google/docs/cli/title](https://antigravity.google/docs/cli/title)
 
 ## How it works
 
