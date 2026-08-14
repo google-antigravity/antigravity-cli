@@ -2,6 +2,30 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.1.13
+
+- Added support for `GEMINI_API_KEY`, so the CLI can run against the Gemini API directly without signing in. Set `modelProvider: "gemini"` in `settings.json`, export `GEMINI_API_KEY`, and point `GOOGLE_GEMINI_BASE_URL` at a custom endpoint if you need one. The banner and `/help` show `Gemini API key` as the credential, and `/logout` explains that it comes from the environment rather than appearing to end a session.
+- Improved `/codesearch` resilience by falling back to a local search when the `ripgrep` binary cannot be executed, such as when an endpoint security agent blocks it.
+- Improved artifact list scrolling by caching each file's preview line count, which previously re-read every listed file from disk on every keypress.
+- Improved custom agent support by making `manage_task` available to declarative agents that have not opted out of fundamental components, so a custom agent can list and kill its own background tasks, and reworded its step lines to read `Killed task X` and `Checked task X`.
+- Improved `search_web` steps by showing the query while the search is still running rather than only after it returns.
+- Improved the agent's behavior after backgrounding work by removing the anti-polling reminder text from the `manage_task` and `manage_inbox` tool results, which could itself nudge the model into a polling loop.
+- Improved the `/resume` picker by relabeling its second tab, which previously carried a name that did not distinguish it from the first.
+- Improved deleting a conversation from the `/resume` picker by moving the keybinding from `ctrl+delete` to `f4`, since macOS terminals disagree on how they report the delete key and the old binding silently did nothing there.
+- Improved the time to open a large conversation by loading step headers in batches and no longer reading each step's full payload just to read its type.
+- Improved embedded ripgrep reliability and security by saving extracted binaries to the user cache directory instead of /tmp. Added content-addressed SHA-256 verification and atomic renaming to guarantee binary integrity and prevent concurrent execution races.
+- Fixed a distorted startup banner in Cloud Shell, where the web terminal mishandles the cursor-optimization escape sequences the renderer emits; a conservative rendering mode now turns on automatically there.
+- Fixed the direct Gemini API route parking on the sign-in screen instead of booting straight into the main UI, and fixed model requests failing against a custom endpoint set through `GOOGLE_GEMINI_BASE_URL` by dropping a session field such an endpoint is not guaranteed to support.
+- Fixed conversations disappearing from the `/resume` picker after cycling to the second tab and back, which left it reporting `No conversations available`, and kept the `tab` hint in the shortcut bar even when a tab is empty.
+- Fixed trajectory truncation destroying nearly all of a long conversation's history, by charging the size budget only against steps whose bytes can actually be reclaimed instead of against protected checkpoints and the unreclaimable residue of already-cleared steps.
+- Fixed unbounded growth of the on-disk conversation database in sessions woken by background tasks, subagents or agent messages, where each wake appended duplicate grants and settings to every persisted row.
+- Fixed corruption of the saved transcript when a background message appended to it while context compaction was rewriting it, which left malformed JSON that no longer parsed.
+- Fixed a hung sandbox setup killing the rest of the conversation, where the step was never unregistered so every later message was silently swallowed and the session appeared dead until a restart.
+- Fixed `define_subagent` using a model-supplied agent name directly as a directory name, so a name containing `..` could write its `agent.md` outside the conversation's artifact directory; names are now validated at both the tool and the handler.
+- Fixed artifact list rendering, where previews produced garbled text and overflowed the panel on wide CJK or emoji characters, the cursor could point past the end of the list when entries disappeared, and the header and footer lines were left out of the scroll math so the list overflowed its viewport.
+- Fixed `Esc` in the artifact viewer showing a spurious submit confirmation for reviews that had completed in earlier turns, and fixed submitting re-reporting those same reviews.
+- Fixed `invoke_subagent`, `send_message`, `manage_subagents`, `define_subagent`, and `generate_image` rendering with no tool call line at all in collapsed and expanded tool groups, leaving a bare `(ctrl+o to expand)` hint with no tool name.
+
 ## 1.1.12
 
 - Added a heading outline to the artifact viewer, opened with `t`, so a long markdown document's structure is visible at a glance and you can jump straight to a section instead of scrolling.
