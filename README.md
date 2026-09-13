@@ -59,6 +59,12 @@ agy
 
 ---
 
+## Ecosystem & Community Extensions
+
+- **[Antigravity Context Meter](https://github.com/Dunphil692/antigravity-context-meter)**: Real-time context telemetry, multi-session monitoring, and zero-loss session migration prompt distillation for Antigravity (Desktop HUD & IDE Extension).
+
+---
+
 ## Authentication
 
 The CLI authenticates via the system keyring, falling back to Google Sign-In if no active session exists.
