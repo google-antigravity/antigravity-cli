@@ -8,8 +8,9 @@ DATA=$(cat)
 eval $(echo "$DATA" | jq -r '
   "STATE=\"\(.agent_state // "idle")\"
    CWD=\"\(.workspace.current_dir // "")\"
+   CONV_TITLE=\"\(.conversation_title // .conversation_name // "")\"
   "
-' 2>/dev/null || echo 'STATE="idle" CWD=""')
+' 2>/dev/null || echo 'STATE="idle" CWD="" CONV_TITLE=""')
 
 # Try to extract CitC workspace name from CWD
 if [ -n "$CWD" ]; then
@@ -32,6 +33,10 @@ case "$STATE" in
   *)            EMOJI="🤖" ;;
 esac
 
-TITLE="$EMOJI $STATE | $WORKSPACE"
+if [ -n "$CONV_TITLE" ]; then
+  TITLE="$EMOJI $STATE | $WORKSPACE ($CONV_TITLE)"
+else
+  TITLE="$EMOJI $STATE | $WORKSPACE"
+fi
 
 echo "$TITLE"
