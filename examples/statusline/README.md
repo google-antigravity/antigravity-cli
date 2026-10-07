@@ -3,7 +3,7 @@
 This directory contains an example script (`statusline.sh`) that demonstrates how to create a custom, dynamic statusline for the Antigravity CLI. 
 
 For more details on how to use and configure the statusline script, please refer to the official public documentation:
-[https://antigravity.google/docs/cli-statusline](https://antigravity.google/docs/cli-statusline)
+[https://antigravity.google/docs/cli/statusline](https://antigravity.google/docs/cli/statusline)
 
 ## How it works
 
