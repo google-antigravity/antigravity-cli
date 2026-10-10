@@ -33,6 +33,7 @@ NUM_COLOR="${FG_BRIGHT_WHITE}${B}"
 # Extract all fields in one pass to prevent spawning jq 8 times.
 {
   read -r STATE
+  read -r CONV_NAME
   read -r USED_PCT
   read -r VCS_BRANCH
   read -r VCS_DIRTY
@@ -45,6 +46,7 @@ NUM_COLOR="${FG_BRIGHT_WHITE}${B}"
 } <<< "$(
   jq -r '
     (.agent_state // "idle"),
+    (.conversation_name // ""),
     (.context_window.used_percentage // 0),
     (.vcs.branch // ""),
     (.vcs.dirty // false),
@@ -54,7 +56,7 @@ NUM_COLOR="${FG_BRIGHT_WHITE}${B}"
     (.task_count // 0),
     (.model.display_name // ""),
     (.terminal_width // 80)
-  ' 2>/dev/null || printf "idle\n0\n\nfalse\nfalse\n0\n0\n0\n\n80\n"
+  ' 2>/dev/null || printf "idle\n\n0\n\nfalse\nfalse\n0\n0\n0\n\n80\n"
 )"
 
 # ─── Computed Values ─────────────────────────────────────────────────────────
@@ -70,6 +72,12 @@ case "$STATE" in
   tool_use) S="${FG_BRIGHT_MAGENTA}${B}🔧 TOOL${R}" ;;
   *)        S="${FG_WHITE}${B}⏳ $(echo "$STATE" | tr '[:lower:]' '[:upper:]')${R}" ;;
 esac
+
+# ─── Conversation Name ───────────────────────────────────────────────────────
+C=""
+if [ -n "$CONV_NAME" ]; then
+  C="${FG_GRAY} ╱ ${FG_BRIGHT_CYAN}${CONV_NAME}${R}"
+fi
 
 # ─── VCS Branch ──────────────────────────────────────────────────────────────
 V=""
@@ -138,7 +146,7 @@ BG_FMT="${FG_GRAY}tasks ${NUM_COLOR}${BG_TASKS}${R}"
 DOT="${FG_GRAY} · ${R}"
 
 # ─── Output ──────────────────────────────────────────────────────────────────
-LINE1="${S}${M}${V}"
+LINE1="${S}${C}${M}${V}"
 LINE2=" ${CTX}${DOT}${ART_FMT}${DOT}${SUB_FMT}${DOT}${BG_FMT}${DOT}${SB}"
 
 if [ "$COLS" -ge 120 ]; then
@@ -150,6 +158,6 @@ elif [ "$COLS" -ge 80 ]; then
   echo -e "${FG_GRAY}╰─${R}${LINE2}"
 else
   # Narrow: compact two-line, minimal chrome
-  echo -e "${S}${M}"
+  echo -e "${S}${C}${M}"
   echo -e "${CTX}${DOT}${BG_FMT}"
 fi
