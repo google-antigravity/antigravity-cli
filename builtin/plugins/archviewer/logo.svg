@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" width="300" height="80">
+  <rect width="300" height="80" rx="12" fill="#1e1e1e"/>
+  
+  <!-- Connections in Google White (forms the diamond shape) -->
+  <line x1="40" y1="40" x2="70" y2="25" stroke="#FFFFFF" stroke-width="3"/>
+  <line x1="40" y1="40" x2="70" y2="55" stroke="#FFFFFF" stroke-width="3"/>
+  <line x1="70" y1="25" x2="100" y2="40" stroke="#FFFFFF" stroke-width="3"/>
+  <line x1="70" y1="55" x2="100" y2="40" stroke="#FFFFFF" stroke-width="3"/>
+  <line x1="70" y1="25" x2="70" y2="55" stroke="#FFFFFF" stroke-width="3"/>
+  
+  <!-- Google Colored Nodes -->
+  <circle cx="40" cy="40" r="10" fill="#4285F4"/> <!-- Blue -->
+  <circle cx="70" cy="25" r="10" fill="#EA4335"/> <!-- Red -->
+  <circle cx="70" cy="55" r="10" fill="#FBBC04"/> <!-- Yellow -->
+  <circle cx="100" cy="40" r="10" fill="#34A853"/> <!-- Green -->
+  
+  <!-- Text in Google Sans / Roboto -->
+  <text x="130" y="47" font-family="'Google Sans', Roboto, sans-serif" font-size="22" font-weight="bold" fill="#ffffff" letter-spacing="1">ARCHVIEWER</text>
+</svg>
