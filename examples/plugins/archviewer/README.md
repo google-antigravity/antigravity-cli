@@ -1,6 +1,6 @@
 # 👷‍♂️ Antigravity ArchViewer Plugin
 
-**ArchViewer** is a zero-token, privacy-first architectural diagram generator for [Google Antigravity](https://github.com/google/antigravity).
+**ArchViewer** is a zero-token, privacy-first architectural diagram generator for [Google Antigravity](https://github.com/google-antigravity/antigravity-cli).
 
 It intelligently watches your agentic brainstorming sessions and, the moment an architecture plan is solidified, autonomously drafts and renders a professional, full-color system topology map using [D2 (Declarative Diagramming)](https://d2lang.com/)—without spending a single LLM token on image generation.
 
