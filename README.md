@@ -57,6 +57,21 @@ After installation, start Antigravity CLI by running:
 agy
 ```
 
+### Common Slash Commands
+
+Inside the interactive session, you can control the agent, execution modes, and context with slash commands:
+
+| Command | Description |
+| :--- | :--- |
+| `/compact` | Compacts and summarizes the active conversation context in-place to free up the context window. Use `/compact` on its own or `/compact <message>` to compact and immediately answer a follow-up query. |
+| `/clear` | Clears the current terminal scrollback and session screen. |
+| `/diff` | Opens the interactive visual diff viewer for reviewing pending file edits (with folding and syntax highlighting). |
+| `/plan` | Enters step-by-step planning mode before executing changes on complex tasks. |
+| `/tasks` | Lists and manages background tasks. |
+| `/config` | Opens interactive settings (including Agent Mode, model selection, and color schemes). |
+| `/logout` | Clears stored authentication credentials. |
+| `/exit` | Exits the active CLI session (or `Ctrl+D Ctrl+D`). |
+
 ---
 
 ## Authentication
