@@ -57,6 +57,37 @@ After installation, start Antigravity CLI by running:
 agy
 ```
 
+### Essential Interactive Commands
+
+| Command | Action |
+| :--- | :--- |
+| /compact | Summarize and condense active session context in-place to free context window budget. |
+| /clear | Clear terminal scrollback and session screen. |
+| /diff | Interactive visual diff viewer with syntax highlighting. |
+| /plan | Enter step-by-step planning mode for multi-step tasks. |
+| /config | Configure model selection, verbosity levels, and color themes. |
+| /logout | Clear saved credentials. |
+| /exit | Exit the CLI session. |
+
+---
+
+## Environment & Troubleshooting
+
+### Linux / Wayland Clipboard Support
+If you encounter exit status 1 when attempting to paste images or multiline clipboard text into gy under Wayland (GNOME, KDE Plasma, Sway):
+- Ensure wl-clipboard is installed on your host system:
+  `ash
+  # Arch Linux
+  sudo pacman -S wl-clipboard
+
+  # Debian / Ubuntu
+  sudo apt install wl-clipboard
+
+  # Fedora
+  sudo dnf install wl-clipboard
+  `
+- Wayland terminal emulators use wl-paste rather than X11's xclip/xsel. Installing wl-clipboard provides the required Wayland clipboard bridge.
+
 ---
 
 ## Authentication
