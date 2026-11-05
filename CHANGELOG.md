@@ -4,6 +4,21 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.5.1
+
+- Changed `agy acp` to offer every model available to your account to every ACP client, where previously only a fixed list of editors were offered models other than Gemini.
+- Changed the tabs in `/config` during `--remote-agent` sessions from `Local` and `Remote` to `TUI` and `Remote Agent`, so it is clear that one configures the terminal UI and the other the remote agent; the settings on each tab are unchanged.
+- Improved how quickly the agent moves on after a terminal command exits while a background process it started still holds the command's output open, which now takes at most about 1 second instead of 5.
+- Improved subagent rows above the prompt so a subagent that is blocked waiting on you names the tool it is waiting on, such as `Blocked · AskQuestion`, instead of `Blocked · Processing...`.
+- Improved how plugin OAuth credentials are protected in the terminal sandbox: a plugin's real token now replaces its stand-in only in a request's `Authorization` header, so a command can no longer get a website to echo the real token back by sending the stand-in in another header or in the URL.
+- Fixed several `agy acp` session bugs: closing, reloading, or resuming a session while a prompt runs now ends that prompt as `cancelled` instead of leaving it hanging, cancelling a prompt no longer also stops the next prompt sent right after it, `session/update` notifications no longer arrive after the `session/prompt` reply for that prompt, and permission requests and question forms now close when they are answered elsewhere or their prompt ends, instead of blocking later prompts or receiving their answers.
+- Fixed file edits on Windows failing with `target content not found` in files that use CRLF line endings, so edits now match whichever line endings the file uses and the lines they insert keep the file's line endings.
+- Fixed agent-run commands on Windows failing or returning garbled text when their output contains non-ASCII characters, by running Python in UTF-8 mode (`PYTHONUTF8=1`, unless you have set `PYTHONUTF8` yourself) and switching PowerShell's output encoding to UTF-8.
+- Fixed stdio MCP servers on Windows leaving their child processes running after the server stops, which could lock plugin folders and make plugin upgrades fail because the files were in use.
+- Fixed `agy plugin` commands being unavailable, with no plugin marketplaces listed, when you sign in with Application Default Credentials (`AGY_ADC_AUTH`) or through an enterprise model gateway.
+- Fixed the built-in `browser` agent being listed among the agents you can start a conversation with, since it is meant to run only as a subagent, which it still does.
+- Fixed copy-on-select and `/copy` inside GNU screen, so copied text now reaches your clipboard and long selections no longer leave stray characters in the terminal.
+
 ## 1.5.0
 
 - Added `acp` to `agy --help`: `agy acp` runs the CLI as an Agent Client Protocol (ACP) server over stdio, so editors can use it as their agent, with images and embedded file context in prompts, steering a running turn by sending another prompt, `default`, `accept-edits`, and `plan` session modes, `session/resume` restoring a session without replaying its history, each session keeping its own model and thinking level, and Google sign-in from a terminal with `agy acp --login` for editors connected over SSH or without a browser.
