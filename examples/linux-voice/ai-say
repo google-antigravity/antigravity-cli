@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Portable CLI Text-to-Speech helper for Antigravity CLI (Piper TTS default, or --kokoro)
+set -euo pipefail
+
+VOICE_ENV="${AGY_VOICE_ENV:-$HOME/.local/share/antigravity-voice/venv}"
+MODEL_DIR="${AGY_VOICE_MODELS:-$HOME/.local/share/antigravity-voice/models}"
+
+ENGINE="piper"
+if [ "${1:-}" = "--kokoro" ] || [ "${1:-}" = "-k" ]; then
+  ENGINE="kokoro"
+  shift
+fi
+
+TEXT="$*"
+if [ -z "$TEXT" ]; then
+  exit 0
+fi
+
+if [ "$ENGINE" = "piper" ] && [ -x "$VOICE_ENV/bin/piper" ] && [ -f "$MODEL_DIR/en_GB-alan-medium.onnx" ]; then
+  printf "%s\n" "$TEXT" | "$VOICE_ENV/bin/piper" --model "$MODEL_DIR/en_GB-alan-medium.onnx" --output-raw 2>/dev/null | \
+    pw-play --rate 22050 --channels 1 --format s16 - 2>/dev/null || true
+elif command -v spd-say >/dev/null 2>&1; then
+  spd-say "$TEXT"
+fi
