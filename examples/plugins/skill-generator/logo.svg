@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 80" width="340" height="80">
+  <rect width="340" height="80" rx="12" fill="#1e1e1e"/>
+  
+  <!-- Sparkle / Scaffolding Icon in Google Palette -->
+  <path d="M55 20 L58 35 L73 38 L58 41 L55 56 L52 41 L37 38 L52 35 Z" fill="#4285F4"/>
+  <circle cx="75" cy="24" r="5" fill="#FBBC04"/>
+  <circle cx="78" cy="52" r="4" fill="#EA4335"/>
+  <circle cx="34" cy="50" r="3.5" fill="#34A853"/>
+  
+  <!-- Text in Google Sans / Roboto -->
+  <text x="100" y="47" font-family="'Google Sans', Roboto, sans-serif" font-size="20" font-weight="bold" fill="#ffffff" letter-spacing="1">SKILL GENERATOR</text>
+</svg>
