@@ -4,6 +4,20 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.5.4
+
+- Added Auto mode to `agy acp` sessions, so editors can switch a session to `auto` wherever the CLI itself offers Auto mode; it approves edits inside the workspace and runs commands in the terminal sandbox, and still asks before commands that would leave the sandbox unless Auto mode's review clears them.
+- Added `hookEventName`, `cwd`, and `toolCall.id` to the JSON input that hooks receive, so a single hook command can handle several events, knows the agent's working directory, and can match a `PostToolUse` call to its `PreToolUse` call.
+- Improved Auto mode's review of commands that would leave the terminal sandbox so it decides faster and times out less often, by using a lighter-thinking Gemini Flash model for the review.
+- Fixed `agy acp` sessions dropping back to the default mode when an editor reloaded or resumed an open session, so a session in `accept-edits` no longer starts asking for permission on file writes again.
+- Fixed `agy acp` turns hanging when a tool call needed a second permission approval, such as a command that asks again after its first approval; the editor now receives a new permission request instead of the turn waiting forever.
+- Fixed crashes and freezes with subagents: the CLI no longer crashes when a subagent's question or approval prompt is drawn in a very narrow terminal or before the terminal size is known, a subagent's question no longer closes by itself while you are answering it, and opening a subagent's view no longer occasionally freezes the CLI.
+- Fixed `PgUp` and `PgDn` in the conversation skipping text: paging down could jump past an entire message when a page ended exactly on a message boundary, and in `full screen (altscreen)` rendering mode the lines hidden under the pinned prompt header were scrolled past without ever being shown.
+- Fixed a thought that follows a tool's result line, such as `Read 22 lines`, being indented as if it were part of that tool call in the expanded view (`Ctrl+O`).
+- Fixed the `remote-control` background service staying disconnected for good when it started before the network was up, such as right after a reboot, and stopped it from printing a sign-in link it could not complete when checking the saved sign-in only hit a network error.
+- Fixed the selected Gemini Enterprise plan being lost, and requests failing with permission errors, when the stored sign-in grew too large for the Windows Credential Manager or macOS Keychain; sign-ins that were already affected are repaired automatically the next time they load.
+- Fixed the `Sign-in update needed` warning, which asks you to run `/logout` and sign in again when your sign-in is missing a newly required permission, not appearing in `--remote-agent` sessions, where only a `cloud conversations are not enabled` error was shown.
+
 ## 1.5.3
 
 - Added each subagent's model next to its name in the subagent rows above the prompt and in `/agents` (hidden on narrow terminals), with the full model and effort in a subagent's detail view, and a `model` field on each `subagents` entry in the status line JSON; `/agents` now shows a single `Tip: Press enter on a subagent to view details.` line instead of repeating `[view details]` on every row.
