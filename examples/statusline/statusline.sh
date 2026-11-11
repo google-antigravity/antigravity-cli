@@ -41,6 +41,7 @@ NUM_COLOR="${FG_BRIGHT_WHITE}${B}"
   read -r SUBAGENTS
   read -r BG_TASKS
   read -r MODEL
+  read -r CWD
   read -r COLS
 } <<< "$(
   jq -r '
@@ -53,8 +54,9 @@ NUM_COLOR="${FG_BRIGHT_WHITE}${B}"
     (if .subagents | type == "array" then (.subagents | length) else 0 end),
     (.task_count // 0),
     (.model.display_name // ""),
+    (.workspace.current_dir // .cwd // ""),
     (.terminal_width // 80)
-  ' 2>/dev/null || printf "idle\n0\n\nfalse\nfalse\n0\n0\n0\n\n80\n"
+  ' 2>/dev/null || printf "idle\n0\n\nfalse\nfalse\n0\n0\n0\n\n\n80\n"
 )"
 
 # ─── Computed Values ─────────────────────────────────────────────────────────
@@ -72,6 +74,20 @@ case "$STATE" in
 esac
 
 # ─── VCS Branch ──────────────────────────────────────────────────────────────
+# Some CLI versions send `vcs` without `branch` or `dirty` (see #739). In that
+# case, ask git directly in the workspace directory. `--no-optional-locks`
+# keeps `git status` from taking the index lock, so it can't interfere with
+# git commands you or the agent run at the same time, and `-uno` skips the
+# (slow) scan for untracked files: only changes to tracked files mark the
+# branch as dirty.
+if [ -z "$VCS_BRANCH" ] && [ -n "$CWD" ] && command -v git >/dev/null 2>&1; then
+  VCS_BRANCH=$(git -C "$CWD" symbolic-ref --short -q HEAD 2>/dev/null \
+    || git -C "$CWD" rev-parse --short HEAD 2>/dev/null || true)
+  if [ -n "$VCS_BRANCH" ] && [ -n "$(git --no-optional-locks -C "$CWD" status --porcelain -uno 2>/dev/null | head -n 1)" ]; then
+    VCS_DIRTY="true"
+  fi
+fi
+
 V=""
 if [ -n "$VCS_BRANCH" ]; then
   if [ "$VCS_DIRTY" = "true" ]; then
