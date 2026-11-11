@@ -42,6 +42,7 @@ NUM_COLOR="${FG_BRIGHT_WHITE}${B}"
   read -r BG_TASKS
   read -r MODEL
   read -r COLS
+  read -r APPROVAL
 } <<< "$(
   jq -r '
     (.agent_state // "idle"),
@@ -53,8 +54,9 @@ NUM_COLOR="${FG_BRIGHT_WHITE}${B}"
     (if .subagents | type == "array" then (.subagents | length) else 0 end),
     (.task_count // 0),
     (.model.display_name // ""),
-    (.terminal_width // 80)
-  ' 2>/dev/null || printf "idle\n0\n\nfalse\nfalse\n0\n0\n0\n\n80\n"
+    (.terminal_width // 80),
+    (.tool_confirmation_pending // false)
+  ' 2>/dev/null || printf "idle\n0\n\nfalse\nfalse\n0\n0\n0\n\n80\nfalse\n"
 )"
 
 # ─── Computed Values ─────────────────────────────────────────────────────────
@@ -70,6 +72,12 @@ case "$STATE" in
   tool_use) S="${FG_BRIGHT_MAGENTA}${B}🔧 TOOL${R}" ;;
   *)        S="${FG_WHITE}${B}⏳ $(echo "$STATE" | tr '[:lower:]' '[:upper:]')${R}" ;;
 esac
+
+# A tool call is waiting for you to approve it: this takes priority over the
+# agent state, since the agent can't continue until you respond.
+if [ "$APPROVAL" = "true" ]; then
+  S="${FG_BRIGHT_YELLOW}${B}✋ APPROVAL NEEDED${R}"
+fi
 
 # ─── VCS Branch ──────────────────────────────────────────────────────────────
 V=""

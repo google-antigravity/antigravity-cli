@@ -8,8 +8,9 @@ DATA=$(cat)
 eval $(echo "$DATA" | jq -r '
   "STATE=\"\(.agent_state // "idle")\"
    CWD=\"\(.workspace.current_dir // "")\"
+   APPROVAL=\"\(.tool_confirmation_pending // false)\"
   "
-' 2>/dev/null || echo 'STATE="idle" CWD=""')
+' 2>/dev/null || echo 'STATE="idle" CWD="" APPROVAL="false"')
 
 # Try to extract CitC workspace name from CWD
 if [ -n "$CWD" ]; then
@@ -31,6 +32,12 @@ case "$STATE" in
   tool_use)     EMOJI="🛠️" ;;
   *)            EMOJI="🤖" ;;
 esac
+
+# A tool call is waiting for you to approve it.
+if [ "$APPROVAL" = "true" ]; then
+  EMOJI="✋"
+  STATE="awaiting approval"
+fi
 
 TITLE="$EMOJI $STATE | $WORKSPACE"
 
