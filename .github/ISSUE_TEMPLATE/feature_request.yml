@@ -1,14 +1,14 @@
 name:  Antigravity CLI - Feature Request
 description: Propose a new feature or improvement for Antigravity CLI
 title: "[Feature Request]: "
-labels: ["type: feature request"]
+labels: ["feature request"]
 assignees: []
 body:
   - type: markdown
     attributes:
       value: |
         > [!IMPORTANT]
-        > Thanks for taking the time to fill out this bug report!
+        > Thanks for taking the time to fill out this feature request!
         >
         > Please search **[existing issues](https://github.com/google-antigravity/antigravity-cli/issues)** to see if a similar feature has been requested
   - type: textarea
