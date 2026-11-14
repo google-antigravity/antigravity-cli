@@ -29,7 +29,17 @@ FG_BRIGHT_WHITE="\033[97m"
 # Number Highlight Color
 NUM_COLOR="${FG_BRIGHT_WHITE}${B}"
 
-# ─── Parse JSON from stdin (Single jq pass for performance) ──────────────────
+# ─── Read JSON from stdin (bounded) ──────────────────────────────────────────
+# Read stdin with a timeout. If the CLI holds the pipe open without writing
+# or closing it, an unbounded `jq`/`cat` read would block until the runner
+# kills the script, and repeated kills auto-disable the statusline. On
+# timeout or empty input, fall back to `{}` so every field takes its default.
+INPUT=""
+IFS= read -r -d '' -t 2 INPUT || true
+exec 0</dev/null
+[ -n "$INPUT" ] || INPUT='{}'
+
+# ─── Parse JSON (Single jq pass for performance) ─────────────────────────────
 # Extract all fields in one pass to prevent spawning jq 8 times.
 {
   read -r STATE
@@ -54,7 +64,7 @@ NUM_COLOR="${FG_BRIGHT_WHITE}${B}"
     (.task_count // 0),
     (.model.display_name // ""),
     (.terminal_width // 80)
-  ' 2>/dev/null || printf "idle\n0\n\nfalse\nfalse\n0\n0\n0\n\n80\n"
+  ' <<< "$INPUT" 2>/dev/null || printf "idle\n0\n\nfalse\nfalse\n0\n0\n0\n\n80\n"
 )"
 
 # ─── Computed Values ─────────────────────────────────────────────────────────
