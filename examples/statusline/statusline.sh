@@ -31,17 +31,30 @@ NUM_COLOR="${FG_BRIGHT_WHITE}${B}"
 
 # ─── Parse JSON from stdin (Single jq pass for performance) ──────────────────
 # Extract all fields in one pass to prevent spawning jq 8 times.
+# Defaults are pre-set so a short/truncated read (e.g. jq prints nothing for
+# empty input but still exits 0) degrades gracefully instead of tripping
+# `set -e`/`set -u` on a failed `read`.
+STATE="idle"
+USED_PCT=0
+VCS_BRANCH=""
+VCS_DIRTY="false"
+SANDBOX="false"
+ARTIFACTS=0
+SUBAGENTS=0
+BG_TASKS=0
+MODEL=""
+COLS=80
 {
-  read -r STATE
-  read -r USED_PCT
-  read -r VCS_BRANCH
-  read -r VCS_DIRTY
-  read -r SANDBOX
-  read -r ARTIFACTS
-  read -r SUBAGENTS
-  read -r BG_TASKS
-  read -r MODEL
-  read -r COLS
+  read -r STATE || true
+  read -r USED_PCT || true
+  read -r VCS_BRANCH || true
+  read -r VCS_DIRTY || true
+  read -r SANDBOX || true
+  read -r ARTIFACTS || true
+  read -r SUBAGENTS || true
+  read -r BG_TASKS || true
+  read -r MODEL || true
+  read -r COLS || true
 } <<< "$(
   jq -r '
     (.agent_state // "idle"),
@@ -57,10 +70,67 @@ NUM_COLOR="${FG_BRIGHT_WHITE}${B}"
   ' 2>/dev/null || printf "idle\n0\n\nfalse\nfalse\n0\n0\n0\n\n80\n"
 )"
 
+# ─── Normalize fields (Windows portability) ──────────────────────────────────
+# Native Windows jq outputs CRLF, which leaves a trailing carriage return in
+# every field. That breaks numeric formatting (`printf: 12.5\r: invalid
+# number`), string comparisons (`case "$STATE"` never matches `idle\r`), and
+# integer tests (`[ "$COLS" -ge 120 ]`). Strip it with pure bash (no fork).
+STATE=${STATE%$'\r'}
+USED_PCT=${USED_PCT%$'\r'}
+VCS_BRANCH=${VCS_BRANCH%$'\r'}
+VCS_DIRTY=${VCS_DIRTY%$'\r'}
+SANDBOX=${SANDBOX%$'\r'}
+ARTIFACTS=${ARTIFACTS%$'\r'}
+SUBAGENTS=${SUBAGENTS%$'\r'}
+BG_TASKS=${BG_TASKS%$'\r'}
+MODEL=${MODEL%$'\r'}
+COLS=${COLS%$'\r'}
+# An empty state (e.g. jq saw only whitespace and printed nothing) means
+# "no payload". Check after CR-stripping so a lone "\r" also falls back.
+if [ -z "$STATE" ]; then
+  STATE="idle"
+fi
+
+# Validate numerics so a malformed payload degrades gracefully instead of
+# exiting non-zero under `set -e` (which blanks the statusline entirely).
+if [[ ! "$USED_PCT" =~ ^-?([0-9]+(\.[0-9]*)?|\.[0-9]+)$ ]]; then
+  USED_PCT=0
+fi
+# Clamp negatives: context usage can never be below zero.
+case "$USED_PCT" in
+  -*) USED_PCT=0 ;;
+esac
+case "$COLS" in
+  ''|*[!0-9]*) COLS=80 ;;
+esac
+if [ "$COLS" -eq 0 ]; then
+  COLS=80
+fi
+case "$ARTIFACTS" in
+  ''|*[!0-9]*) ARTIFACTS=0 ;;
+esac
+case "$SUBAGENTS" in
+  ''|*[!0-9]*) SUBAGENTS=0 ;;
+esac
+case "$BG_TASKS" in
+  ''|*[!0-9]*) BG_TASKS=0 ;;
+esac
+
 # ─── Computed Values ─────────────────────────────────────────────────────────
 # Use LC_NUMERIC=C to prevent bash printf errors in locales that use commas for decimals
 PCT_FMT=$(LC_NUMERIC=C printf "%.1f" "$USED_PCT")
-PCT_INT=${USED_PCT%.*}; PCT_INT=${PCT_INT:-0}
+PCT_INT=${PCT_FMT%.*}; PCT_INT=${PCT_INT:-0}
+# Clamp usage above 100% (e.g. rounding or a malformed payload) so the bar
+# never overflows its 15 segments and the label stays truthful.
+if [ "$PCT_INT" -gt 100 ]; then
+  PCT_FMT="100.0"
+  PCT_INT=100
+elif [ "$PCT_INT" -eq 100 ]; then
+  case "$PCT_FMT" in
+    100.0) ;;
+    100.*) PCT_FMT="100.0" ;;
+  esac
+fi
 
 # ─── State Indicator (No background colors) ──────────────────────────────────
 case "$STATE" in
