@@ -1,0 +1,32 @@
+name: auto-assignment
+
+on:
+  issues:
+    types:
+      - opened
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  welcome:
+    name: Auto Assign Issues
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write # Write access needed to add assignees to issues
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - name: Run auto-assignment script
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        with:
+          script: |
+            const script = require('./.github/workflows/scripts/auto-assignment.js')
+            await script({github, context})
