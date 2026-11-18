@@ -4,6 +4,18 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.5.11
+
+- Added dragging a subagent's tab from the side panel into the message box in the Remote Control browser view, which adds an `@` mention of that subagent's conversation to your message.
+- Improved undo in Vim mode to work like Vim: `u` now undoes one command at a time instead of grouping edits made close together, a change that enters Insert mode, such as `cw` or `o`, undoes together with everything you typed before `Esc`, and undoing or redoing an operator such as `dd` or `diw` puts the cursor at the start of the changed text.
+- Improved `agy plugin validate` so you can check a plugin before you install it: besides a local folder, it now accepts a plugin `.zip` file, an `https://` link to one, or a GitHub repository URL, using `https://github.com/<owner>/<repo>/tree/<branch>/<path>` for a plugin in a subfolder.
+- Changed file and artifact tabs in the side panel of the Remote Control browser view to open with their sidebar closed, so the file or artifact gets the panel's full width; previously the file tree or artifact list opened on its own whenever the panel was wide enough, and you can still open it with `Toggle sidebar` in the tab's header.
+- Fixed `/usage`, `/quota`, and `/credits` loading forever or showing an empty quota when you connect with a `GEMINI_API_KEY`, which has no account quota to show; they are now left out of autocomplete and `/help`, running one explains why and points you to the key's usage in AI Studio, and in `-p` runs they exit with code 2.
+- Fixed plugins whose `plugin.json` starts with a UTF-8 byte order mark (BOM), as some Windows editors save it, not loading even though `agy plugin install` reported success, and `agy plugin validate` rejecting them.
+- Fixed files larger than a few megabytes, such as photos and videos, failing to upload when you attach them in the Remote Control browser view; attachments up to 20 MB now upload.
+- Fixed clicking a quote in one of your messages in the Remote Control browser view doing nothing when the quoted passage was too far back in a long conversation to have loaded yet; the view now loads that part of the conversation and scrolls to the passage.
+- Fixed installing the CLI printing routine progress messages as lines starting with `ERROR: logging before google.Init`, which made a successful install look like it had failed.
+
 ## 1.5.10
 
 - Added `accept-edits` mode to `--remote-agent` sessions: `Shift+Tab` now switches between the default mode and `accept-edits` instead of doing nothing. Sessions still start in the default mode, where the remote agent now asks before each file edit in its workspace, so you may see edit approval prompts you didn't get before; switch to `accept-edits` to let edits go ahead without asking.
