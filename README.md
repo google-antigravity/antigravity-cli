@@ -57,6 +57,16 @@ After installation, start Antigravity CLI by running:
 agy
 ```
 
+### Machine-readable command output
+
+Use the global `--output-format` flag before the `models` or `agents`
+subcommand to retrieve machine-readable output:
+
+```bash
+agy --output-format json models
+agy --output-format stream-json agents
+```
+
 ---
 
 ## Authentication
