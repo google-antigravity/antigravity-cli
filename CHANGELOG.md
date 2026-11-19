@@ -4,6 +4,23 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.5.12
+
+- Added split view to the Remote Control browser view, so you can keep several conversations open side by side: choose `Split Right` or `Split Down` from the `Split` submenu of a conversation's menu in the sidebar or of the ⋮ menu in its title bar (not available on phones).
+- Added Gemini 4 Neon (Low, Medium, High, and XHigh) to `/model` and `--model` when you connect with a `GEMINI_API_KEY`.
+- Added a scroll position indicator to the `full screen (altscreen)` rendering mode: while you're scrolled up, the line above the prompt shows how much of the conversation is below what you're reading, such as `↓ 25 lines · 2 turns`.
+- Improved Markdown headings in agent responses and artifacts, which now show only their text, set apart by bold, italic, or underline, instead of starting with `##` to `######` markers that looked like Markdown that failed to render.
+- Improved `/fork` for conversations whose artifact folder has grown large, for example after the agent cloned a repository or kept build output in `scratch/`: the fork now leaves those files with the original conversation and points the forked agent to them instead of copying every file, so forking takes seconds instead of up to an hour, and deleting the original conversation also deletes those files.
+- Improved scrolling back through a long conversation in the Remote Control browser view: `Loading older messages…` now shows while earlier messages load, and if they fail to load, `Couldn't load older messages · Retry` lets you try again instead of the view retrying silently every time you scroll up.
+- Improved Auto mode's review of commands that would leave the terminal sandbox so it decides faster, times out less often, and asks you to approve safe commands less often: when the review runs on Gemini 4 Hydrogen, it now uses medium instead of high thinking.
+- Fixed agent turns stopping with an error after a brief connection problem, such as a connection the server reset, a model response that broke off partway through, or the network not being ready yet right after your computer wakes from sleep; the CLI now retries these requests automatically.
+- Fixed Remote Control, `--remote-agent`, and voice dictation being offered when you connect with a `GEMINI_API_KEY`, where they could only fail, for example with a Remote Control link that never connected: `--remote-control` and `--remote-agent` now exit with code 2 at launch, and `/remote-control`, `/voice`, and `/record` are left out of autocomplete and `/help` and explain that they aren't available with a Gemini API key.
+- Fixed the status line showing a red `AI: Out of credits` when you connect with a `GEMINI_API_KEY` and AI credits are turned on in your settings; API keys don't use AI credits, so that status and the `Use AI Credits` setting in `/config` no longer appear.
+- Fixed copying a long prompt with the mouse in the `full screen (altscreen)` rendering mode putting a line break wherever the prompt wrapped on screen; a prompt you sent, or the text in the prompt box, now copies as you typed it.
+- Fixed bold text next to Chinese, Japanese, or Korean text showing its `**` markers when the bold part starts or ends with punctuation, such as `**注意：**这里`.
+- Fixed the Remote Control browser view crashing on a conversation that contains `@` mentions pasted back from a Markdown export, such as Google Docs' Copy as Markdown; such mentions now paste as plain text, and affected conversations open normally again.
+- Fixed pressing `Enter` in the Remote Control browser view sending your message while the send button was disabled, such as before an attachment finished uploading or while the conversation was still loading; `Enter` now waits until you can send, and your draft stays in the message box.
+
 ## 1.5.11
 
 - Added dragging a subagent's tab from the side panel into the message box in the Remote Control browser view, which adds an `@` mention of that subagent's conversation to your message.
