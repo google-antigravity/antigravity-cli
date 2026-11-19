@@ -4,6 +4,26 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.5.13
+
+- Added Gemini 4 Neon (Low, Medium, High, and XHigh) to `/model` and `--model` when you sign in with Application Default Credentials (`AGY_ADC_AUTH`), and added support for Gemini 4 Neon through an enterprise model gateway.
+- Improved mouse selection in Markdown tables in the `full screen (altscreen)` rendering mode and the artifact viewer: a drag that starts in a table now follows its columns, so you copy only the text of the column you drag in, or whole cells separated by tabs when you drag across columns, instead of the borders and the text of neighboring columns.
+- Improved how the agent works through multi-step tasks: it now runs independent searches, file reads, and edits together in one step and chains related shell commands into a single command, so tasks take fewer turns.
+- Fixed custom models in `settings.json` ignoring `modelFeatures` flags set to `false`, such as `supportsThinking` and `supportsToolCalls`, so the CLI no longer requests thinking or tool calls from a model you've marked as not supporting them.
+- Fixed agents starting a swarm on their own when you hadn't typed `/swarm`, which can use far more of your quota than a single agent; the swarm skill is no longer offered to the agent, and `/swarm` works as before.
+- Fixed `Ctrl` and `Alt` shortcuts, such as `Ctrl+C` and `Ctrl+D`, acting as a different key on non-QWERTY keyboard layouts like Neo2, Dvorak, AZERTY, or German QWERTZ in terminals such as Ghostty; shortcuts now follow your keyboard layout.
+- Fixed `Enter` adding a new line instead of running the command in `!` shell mode when Vim mode is on.
+- Fixed `agy update` on Android (Termux) failing with a `directory /apex/com.android.runtime/bin is not fully accessible` error.
+- Fixed the `/config` hint for the `Send Immediately` option of `Queued Messages`, which said it interrupts the agent; it now says your message joins the current turn and the agent reads it after its current step.
+- Fixed the `status` of `--output-format json` and `stream-json` results reading `ERROR`, with the error of a failed attempt, for runs that succeeded after the CLI retried a model request; they now report `SUCCESS`.
+- Fixed `agy acp` running the agent's shell commands in the directory the editor launched it from, such as your home directory, instead of the session's project folder.
+- Fixed `agy acp` ignoring the file contents an editor attaches to a prompt, such as a file with unsaved changes in Zed; the agent now sees the editor's copy instead of the last saved version on disk.
+- Fixed model pickers in editors connected through `agy acp`, such as Zed and JetBrains AI Chat, showing internal `MODEL_PLACEHOLDER_...` IDs and several rows with the same name when you use an enterprise model gateway; each model is now listed once under its model ID, and models that share a name show their ID next to it.
+- Fixed `agy acp` showing an `API error (attempt N)` message in the editor's chat each time the CLI retried a model request, even when the retry succeeded; retries are now silent, as in the terminal, and the chat shows an error only when every retry fails.
+- Fixed the built-in `/antigravity-guide` skill reading a redirect notice instead of the page when the agent looked up the Antigravity docs or changelog to answer your questions, such as what's new in the latest release.
+- Fixed the Remote Control browser view jumping when you answer a permission prompt; the conversation now stays where you were reading instead of sliding down as the prompt closes.
+- Fixed permission prompts in the Remote Control browser view resetting after a brief connection drop, which lost the option you had picked, your edits to the command or path, and anything you had typed for the `No` option.
+
 ## 1.5.12
 
 - Added split view to the Remote Control browser view, so you can keep several conversations open side by side: choose `Split Right` or `Split Down` from the `Split` submenu of a conversation's menu in the sidebar or of the ⋮ menu in its title bar (not available on phones).
