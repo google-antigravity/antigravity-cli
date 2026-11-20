@@ -9,7 +9,7 @@ For more details on how to use and configure the statusline script, please refer
 
 The `statusline.sh` script reads a JSON payload from standard input, containing various state information from the CLI. It then:
 1. Extracts multiple fields like `agent_state`, `vcs` info, context usage, and terminal dimensions using `jq`.
-2. Computes visual indicators, such as a Unicode progress bar for context window usage.
+2. Computes visual indicators, such as a Unicode progress bar for context window usage, and shows `✋ APPROVAL NEEDED` in place of the agent state while a tool call is waiting for your approval (`tool_confirmation_pending`).
 3. Formats the data with standard ANSI 16-color codes for visual distinction.
 4. Dynamically adjusts the layout to be 1 or 2 lines based on the available terminal width.
 
