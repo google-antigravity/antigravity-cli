@@ -1,8 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
-# Read JSON payload from stdin
-DATA=$(cat)
+# Read JSON payload from stdin with a timeout, so a pipe that is held open
+# without being written to can't hang the script until the runner kills it.
+DATA=""
+IFS= read -r -d '' -t 2 DATA || true
+exec 0</dev/null
+[ -n "$DATA" ] || DATA='{}'
 
 # Extract fields using jq
 eval $(echo "$DATA" | jq -r '
