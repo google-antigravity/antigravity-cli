@@ -15,8 +15,8 @@ body:
     id: cli-version
     attributes:
       label: Antigravity CLI Version
-      description: Run `agy --version` or `antigravity --version` and paste the output
-      placeholder: e.g., 1.1.5
+      description: Run `agy --version` and paste the output (not `antigravity --version`, which reports the Antigravity IDE's version)
+      placeholder: e.g., 1.5.5
     validations:
       required: true
   - type: textarea
