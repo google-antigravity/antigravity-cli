@@ -4,6 +4,26 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.5.16
+
+- Added `-r` and `--resume` command-line flag aliases for `--conversation` so you can resume a specific conversation by ID with `agy -r <id>` or `agy --resume <id>`.
+- Added a live step checklist under the status line above the prompt during multi-step interactive turns: when the agent tracks its steps with `update_steps`, the status line shows `N/M steps` (plus any skipped or failed count) and an open checklist of up to seven steps (`⋮ N earlier` and `⋮ N more` on longer lists) that hides automatically once all steps finish.
+- Added discovery of user-global skills in `~/.agents/skills`, so cross-tool Agent Skills appear in `/skills`, `/` autocomplete, and agent turns, with skills in `~/.gemini` taking precedence on name collisions.
+- Improved elapsed timers while the agent is working: the status line above the prompt now times thinking (`Thinking... 12s`) and each running tool (`Running command... 18s`) separately, resetting between phases and tools, and `Thought for <duration>` headers in the transcript now count only thinking time instead of including tool runs and response streaming.
+- Improved model quota tracking during turns lasting a minute or longer by refreshing your quota periodically while the agent streams, so `/usage`, `/quota`, and custom `statusLine` commands stay current before the turn finishes.
+- Improved the `full screen (altscreen)` rendering mode to keep the prompt bar anchored at the bottom of the terminal on new, short, or `Ctrl+L`-cleared conversations instead of starting near the top and sliding down as messages arrive.
+- Changed Auto mode (the default `Agent Mode`) to allow creating or editing files outside the workspace without asking when the file is inside a version-controlled repository (such as Git, Jujutsu, or Mercurial) or when the change only adds new content (creating a new file, appending, or inserting text without replacing existing lines); previously Auto mode asked before every outside-workspace file write or edit. Overwriting or replacing lines outside a repository, hidden paths, VCS and hook metadata such as `.git` and `hooks.json`, and system and startup folders still ask for approval, and your `ask` and `deny` permission rules and organization policies still apply.
+- Changed `pluginControls.pluginsDisabled` in managed admin settings and Gemini Enterprise plugin controls to keep built-in plugins enabled while still blocking installed, workspace, and marketplace plugins and plugin commands; previously it disabled built-in plugins as well.
+- Fixed failed and timed-out shell commands showing a green status dot instead of a red one in `low` and `high` verbosity, `/thinking`, and expanded (`Ctrl+O`) transcript views, while keeping canceled commands gray.
+- Fixed typing a custom write-in answer to an agent or subagent question hiding the terminal cursor at the bottom of the screen and misplacing IME composition text (such as Korean, Japanese, or Chinese); the hardware cursor now tracks your editing position.
+- Fixed running `agy` over SSH on macOS always bypassing your existing macOS Keychain sign-in and asking you to sign in again; when your login Keychain is unlocked, `agy` now reuses it and falls back to file-based token storage when locked.
+- Fixed `agy acp` stalling for 60 seconds when a subagent or workflow agent requested tool approval or asked a question in `default` or `accept-edits` mode; subagent permission requests, form prompts, and questions now forward to the editor and route your answers back to the subagent.
+- Fixed `/swarm` board wakeup notifications being attributed to whichever swarm member last opened the swarm instead of `"system"`, which could cancel member-scoped timers early and crowd out coordinator instructions when a worker's conversation compacted.
+- Fixed voice dictation in the Remote Control browser view recording an audio file attachment instead of transcribing speech into the message box (and hiding the microphone button in comment boxes), or failing to start microphone capture under the browser's content security policy.
+- Fixed voice dictation failing or timing out when starting in long conversations with large file reads or command outputs, and stalling when stopping a recording in the Remote Control browser view after out-of-order audio chunks.
+- Fixed opening, playing, or downloading audio and video files larger than 20 MB (up to 200 MB) in remote conversations in the Remote Control browser view failing with `File exceeds the 20MB display limit`.
+- Fixed navigating back from a conversation to the mobile home screen in the Remote Control browser view resetting the projects and conversations list to the top instead of restoring your scroll position.
+
 ## 1.5.15
 
 - Added an auto-compaction threshold row under the capacity header in `/context`, and updated `AGY_CLI_AUTO_COMPACT_OVERRIDE` to support all eligible models: pass a token count (`700000`), a `K` or `M` shorthand (`800K`, `0.5M`), or a percentage (`80%`) up to the model's context window to set when conversations compact, and see the active override in `/context` and `/model`.
