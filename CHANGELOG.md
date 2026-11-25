@@ -4,6 +4,25 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.5.17
+
+- Added mouse cursor placement and text selection inside the prompt box in the `full screen (altscreen)` rendering mode: click to move the cursor, or drag and double-click (and double-click-drag by word) to highlight text for typing or paste replacement, `Backspace`/`Delete`, `Ctrl+C` copy, and `Ctrl+X` cut without overwriting your clipboard on release. When Vim mode is on, mouse selections outside Insert mode enter characterwise Visual mode so Vim operators and motions act on the selection, and Normal-mode clicks past the end of a line land on the last character.
+- Improved background shell command tracking by letting `run_command` set a `NotificationTimeoutSeconds` wakeup, so the CLI automatically notifies the agent when a long-running command is still running instead of spending extra turns on separate polling timers.
+- Improved the `Orchestrator` row in `/model` so that picking the same model and thinking `Effort` for both `Planner` and `Executor` runs single-agent directly on that model — showing it in the status line, inheriting it in `/btw`, and using its context window in `/context` — while distinct `Effort` levels of the same model family continue to run two-phase plan-and-execute.
+- Improved the `Orchestrator` row in `/model` by bracketing the focused thinking `Effort` choice (such as `[high]`) and labeling `Tab` as `tab Next Field` instead of `tab Effort`.
+- Improved `/usage` to format quota refresh countdowns of 24 hours or longer in days, hours, and minutes (such as `in 3d 3h 59m` instead of `in 75h 59m`).
+- Improved MCP server OAuth sign-in in `/mcp` and `/plugin` to request `offline_access` when the server specifies scopes and its authorization server advertises `offline_access`, so remote MCP servers such as Vercel's issue refresh tokens instead of disconnecting when the initial access token expires.
+- Fixed pressing `Tab` in the `/` slash-command autocomplete menu doing nothing when multiple commands shared what you typed, after navigating with `↑` or `↓`, or right after a `plugin:` prefix; `Tab` now completes the highlighted command and closes the menu whenever no longer common prefix can be extended.
+- Fixed mouse-wheel scrolling over an open bottom panel or `/`, `@`, or argument dropdown — and `PgUp`, `PgDn`, `Shift+↑`, or `Shift+↓` in panels that page themselves (such as `/help`, `/permissions`, `/skills`, `/context`, and `/usage`) — scrolling the conversation behind the panel instead of the panel itself in the `full screen (altscreen)` rendering mode.
+- Fixed `agy update` printing status lines with staircase indentation when run in a terminal with raw output mode enabled, while keeping newline-only output when piped or redirected to a file.
+- Fixed long-running agent turns failing with an `UNAUTHENTICATED` (`401`) error when a Google OAuth access token crossed its one-hour expiry; the CLI now refreshes tokens ahead of expiry and retries a pre-stream `401` automatically.
+- Fixed long, multi-part streaming model responses discarding their progress and restarting or failing the turn when a continuation request hit a temporary model capacity (`503` / `MODEL_CAPACITY_EXHAUSTED`) error; the CLI now retries and resumes from where the response left off.
+- Fixed turns on Gemini Enterprise accounts with an empty prepaid wallet retrying repeatedly and reporting `You have exhausted your quota on this model.`; the CLI now stops right away and tells you `Your organization's prepaid balance is insufficient. Contact your administrator to add funds.` (with an `Organization prepaid wallet is empty` notice in the Remote Control browser view).
+- Fixed Gemini Enterprise and enterprise model-gateway sessions with non-workspace file access allowed bypassing built-in approval and deny protections on sensitive files such as `.git`, `.env`, `config.json`, `hooks.json`, and `mcp_config.json`.
+- Fixed plugin CLI tools on Windows running without their configured authentication token when the terminal sandbox is off and your workspace is on a different drive letter than your user profile.
+- Fixed the model picker in the message box of the Remote Control browser view being locked while a turn is running; you can now switch models mid-turn for `/btw` side questions and messages sent after the current turn.
+- Fixed LaTeX math blocks containing `\label{...}` failing to render with `Failed to render LaTeX` in the Remote Control browser view.
+
 ## 1.5.16
 
 - Added `-r` and `--resume` command-line flag aliases for `--conversation` so you can resume a specific conversation by ID with `agy -r <id>` or `agy --resume <id>`.
