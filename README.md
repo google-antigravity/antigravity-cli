@@ -57,6 +57,21 @@ After installation, start Antigravity CLI by running:
 agy
 ```
 
+### Follow-up Messages & Shortcuts
+
+While the agent is executing a turn or running a command, you can interact with it using follow-up messages:
+
+- **`Enter`**: Queues your follow-up message to be processed once the current turn finishes (default `Queue` mode).
+- **`Alt+M`** (or **`Option+M`** on macOS): Sends the message using the opposite of your `Queued Messages` setting in `/config` (e.g., sends immediately while in `Queue` mode, or queues while in `Send Immediately` mode).
+
+> [!TIP]
+> **macOS Terminal Setup (`Option` as `Meta`)**:
+> By default, macOS terminals may send special characters (such as `µ` for `Option+M`) instead of an `Alt/Meta` escape sequence. To use `Option+M`:
+> - **Terminal.app**: *Settings > Profiles > Keyboard* → check **"Use Option as Meta key"**.
+> - **iTerm2**: *Settings > Profiles > Keys* → set **Left Option Key** to **`Esc+`**.
+> - **VS Code / Cursor Terminal**: Enable `"terminal.integrated.macOptionIsMeta": true` in your user settings.
+> - **Universal Fallback**: Press <kbd>Esc</kbd> followed by <kbd>M</kbd> to send the escape sequence directly without reconfiguring your terminal.
+
 ---
 
 ## Authentication
