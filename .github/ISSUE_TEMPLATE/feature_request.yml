@@ -8,7 +8,7 @@ body:
     attributes:
       value: |
         > [!IMPORTANT]
-        > Thanks for taking the time to fill out this bug report!
+        > Thanks for taking the time to fill out this feature request!
         >
         > Please search **[existing issues](https://github.com/google-antigravity/antigravity-cli/issues)** to see if a similar feature has been requested
   - type: textarea
