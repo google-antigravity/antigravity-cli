@@ -1,0 +1,195 @@
+#!/usr/bin/env python3
+"""
+PipeWire Recording Shim for Antigravity CLI (`/voice`) on Linux.
+Uses pure Python standard library (`array`) for zero-dependency startup:
+1. Strips unsupported `--raw` flag passed by Antigravity CLI (`agy`) on PipeWire systems.
+2. Automatically selects and unmutes the primary non-monitor physical microphone input.
+3. Performs real-time DC-offset removal and Automatic Gain Control (AGC) when streaming
+   raw 16kHz s16le PCM to `agy` stdout, preventing `No speech detected` on quiet USB mics.
+4. Optionally forwards `/tmp/agy_voice_last.raw` to a local Faster-Whisper socket
+   (`/run/user/$UID/voice_dictate.sock`) if cloud `audiotranscribe` fails.
+"""
+
+import array
+import math
+import os
+import signal
+import socket
+import subprocess
+import sys
+import time
+
+REAL_PW_RECORD = os.environ.get("AGY_REAL_PW_RECORD", "/usr/bin/pw-record")
+RAW_CAPTURE_PATH = os.environ.get("AGY_RAW_CAPTURE_PATH", f"/tmp/agy_voice_{os.getuid()}.raw")
+SOCKET_PATH = os.environ.get("AGY_WHISPER_SOCKET", f"/run/user/{os.getuid()}/voice_dictate.sock")
+CLI_LOG_PATH = os.path.expanduser("~/.gemini/antigravity-cli/cli.log")
+
+
+def auto_select_mic() -> None:
+    """Select and unmute the first physical non-monitor input source via pactl."""
+    try:
+        out = subprocess.check_output(
+            ["pactl", "list", "short", "sources"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        )
+        sources = [
+            line.split("\t")[1]
+            for line in out.strip().splitlines()
+            if len(line.split("\t")) >= 2 and ".monitor" not in line.split("\t")[1]
+        ]
+        if not sources:
+            return
+        best = sources[0]
+        for preferred in ["usb-", "input", "mic", "yeti", "audio"]:
+            matches = [s for s in sources if preferred in s.lower()]
+            if matches:
+                best = matches[0]
+                break
+        subprocess.run(["pactl", "set-default-source", best], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["pactl", "set-source-mute", best, "0"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
+
+
+def trigger_local_whisper_fallback() -> None:
+    """Optionally notify a local Faster-Whisper UNIX socket if cloud transcription fails."""
+    try:
+        if not os.path.exists(RAW_CAPTURE_PATH) or os.path.getsize(RAW_CAPTURE_PATH) < 11200:
+            return
+        if not os.path.exists(SOCKET_PATH):
+            return
+        if os.fork() != 0:
+            return
+
+        os.setsid()
+        time.sleep(0.45)
+
+        cloud_failed = os.environ.get("AGY_FORCE_LOCAL_WHISPER", "0") == "1"
+        try:
+            if os.path.exists(CLI_LOG_PATH):
+                with open(CLI_LOG_PATH, "rb") as lf:
+                    lf.seek(max(0, os.path.getsize(CLI_LOG_PATH) - 4096))
+                    tail = lf.read().decode("utf-8", errors="ignore")
+                    if "audiotranscribe:" in tail or "finalizing the transcript failed" in tail:
+                        cloud_failed = True
+        except Exception:
+            pass
+
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.settimeout(5.0)
+        s.connect(SOCKET_PATH)
+        cmd = f"TRANSCRIBE_AND_TYPE:{RAW_CAPTURE_PATH}\n" if cloud_failed else f"TRANSCRIBE_RAW:{RAW_CAPTURE_PATH}\n"
+        s.sendall(cmd.encode("utf-8"))
+        s.close()
+    except Exception:
+        pass
+    finally:
+        if "s" in locals():
+            os._exit(0)
+
+
+def main() -> None:
+    raw_mode = "--raw" in sys.argv
+    filtered_args = [a for a in sys.argv[1:] if a != "--raw"]
+
+    auto_select_mic()
+
+    if not raw_mode or "-" not in filtered_args:
+        os.execv(REAL_PW_RECORD, [REAL_PW_RECORD] + filtered_args)
+
+    proc = subprocess.Popen(
+        [REAL_PW_RECORD] + filtered_args,
+        stdout=subprocess.PIPE,
+        stderr=sys.stderr,
+    )
+
+    raw_file = None
+    try:
+        raw_file = open(RAW_CAPTURE_PATH, "wb")
+    except Exception:
+        pass
+
+    def handle_sig(signum, frame):
+        try:
+            proc.terminate()
+        except Exception:
+            pass
+
+    signal.signal(signal.SIGTERM, handle_sig)
+    signal.signal(signal.SIGINT, handle_sig)
+
+    running_gain = 4.0
+    chunk_size = 1280  # 640 samples = 40ms at 16kHz s16le
+
+    try:
+        while True:
+            data = proc.stdout.read(chunk_size) if proc.stdout else b""
+            if not data:
+                break
+
+            if len(data) % 2 == 0 and len(data) > 0:
+                samples = array.array("h")
+                samples.frombytes(data)
+                n = len(samples)
+                mean_val = int(sum(samples) / n)
+                peak = 0
+                sum_sq = 0.0
+                centered = [0] * n
+                for i, v in enumerate(samples):
+                    c = v - mean_val
+                    centered[i] = c
+                    ac = abs(c)
+                    if ac > peak:
+                        peak = ac
+                    sum_sq += c * c
+                rms = math.sqrt(sum_sq / n)
+
+                if rms > 15.0:
+                    target_gain = min(22000.0 / max(peak, 1), 18.0)
+                    running_gain = 0.8 * running_gain + 0.2 * target_gain
+                    g = max(running_gain, 1.5)
+                    out_arr = array.array(
+                        "h",
+                        (max(-32767, min(32767, int(c * g))) for c in centered),
+                    )
+                else:
+                    out_arr = array.array(
+                        "h",
+                        (max(-32767, min(32767, c)) for c in centered),
+                    )
+                out_bytes = out_arr.tobytes()
+            else:
+                out_bytes = data
+
+            if raw_file is not None:
+                try:
+                    raw_file.write(out_bytes)
+                    raw_file.flush()
+                except Exception:
+                    pass
+
+            try:
+                sys.stdout.buffer.write(out_bytes)
+                sys.stdout.buffer.flush()
+            except BrokenPipeError:
+                break
+    finally:
+        if raw_file is not None:
+            try:
+                raw_file.close()
+            except Exception:
+                pass
+        try:
+            proc.terminate()
+            proc.wait(timeout=0.3)
+        except Exception:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+        trigger_local_whisper_fallback()
+
+
+if __name__ == "__main__":
+    main()
