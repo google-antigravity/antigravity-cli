@@ -4,6 +4,21 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.5.19
+
+- Added `agy conversations list` to show saved conversations and their disk usage, and `agy conversations clean` (with `--dry-run`, `--older-than`, `--keep-recent`, `--min-size`, or explicit conversation IDs) to delete old or oversized conversations together with their subagents.
+- Added transcript mode: press `Esc` twice on an empty prompt in full-screen mode to browse the conversation, search it with `/`, and jump between your prompts with `[` and `]`.
+- Added a quick way to rewind the conversation: in transcript mode, press `r` to go back to a prompt and load it into the input box to edit and resend, leaving your files untouched. In inline mode, pressing `Esc` twice on an empty prompt opens the same chat-only rewind picker.
+- Improved `/rename` so it works before you send your first message: it creates an empty conversation and names it instead of failing with "no active conversation".
+- Improved conversation search for Gemini API key sessions: the `/resume` picker and `@conversation:` completions now match the text of past conversations, not just their titles.
+- Improved the default auto-compaction behavior for Gemini API key sessions.
+- Improved sessions that go quiet while background tasks or subagents are still running, so they now resume on their own instead of stalling indefinitely.
+- Improved how the CLI explains that Auto mode can't run because the terminal sandbox is unavailable: `Agent Mode` in `/config` now shows a warning with the reason (for example, an AppArmor restriction on unprivileged user namespaces), and `-p --mode auto` includes that reason in its fallback warning.
+- Improved responsiveness in long conversations when you background a shell command with `Ctrl+B` or a shell or slash command finishes: the CLI now redraws only that command's output instead of the whole transcript.
+- Improved the `↓ N lines` scroll indicator in full-screen mode: clicking it now jumps straight back to the bottom of the conversation.
+- Fixed saved "Always allow" permission rules that an admin policy had removed coming back mid-turn and auto-approving actions the admin settings should have blocked or required approval for.
+- Fixed `agy acp` leaving the output of successful MCP tool calls and file reads out of tool call updates, both live and when a session is reloaded, and stopped timestamp headers from leaking into MCP tool output shown in the terminal.
+
 ## 1.5.18
 
 - Fixed the agent attaching truncated or corrupt images to the conversation when viewing files; it now rejects them with an error, so a half-written image no longer makes later model requests fail and retry.
