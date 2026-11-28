@@ -10,7 +10,7 @@ For more details on how to use and configure the title script, please refer to t
 The `title.sh` script reads a JSON payload from standard input, which contains real-time information about the agent's state and context. It then:
 1. Extracts the `agent_state` and `workspace.current_dir` using `jq`.
 2. Parses the current directory to determine a short workspace name (with special handling for CitC workspaces).
-3. Maps the agent state to a corresponding emoji (e.g., 🤔 for thinking, 🛠️ for tool use, 😴 for idle).
+3. Maps the agent state to a corresponding emoji (e.g., 🤔 for thinking, 🛠️ for tool use, 😴 for idle). While a tool call is waiting for your approval (`tool_confirmation_pending`), the title shows `✋ awaiting approval` instead, so you can spot it from another window or tab.
 4. Outputs the formatted title string in the format: `[Emoji] [State] | [Workspace]`.
 
 ## Examples
