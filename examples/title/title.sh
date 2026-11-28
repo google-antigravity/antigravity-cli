@@ -4,12 +4,10 @@ set -euo pipefail
 # Read JSON payload from stdin
 DATA=$(cat)
 
-# Extract fields using jq
-eval $(echo "$DATA" | jq -r '
-  "STATE=\"\(.agent_state // "idle")\"
-   CWD=\"\(.workspace.current_dir // "")\"
-  "
-' 2>/dev/null || echo 'STATE="idle" CWD=""')
+# Extract fields without evaluating JSON-derived shell code. Workspace paths can
+# contain shell metacharacters, so they must remain plain data.
+STATE=$(jq -r '(.agent_state | strings) // "idle"' <<< "$DATA" 2>/dev/null) || STATE="idle"
+CWD=$(jq -r '(.workspace.current_dir | strings) // ""' <<< "$DATA" 2>/dev/null) || CWD=""
 
 # Try to extract CitC workspace name from CWD
 if [ -n "$CWD" ]; then
@@ -34,4 +32,4 @@ esac
 
 TITLE="$EMOJI $STATE | $WORKSPACE"
 
-echo "$TITLE"
+printf '%s\n' "$TITLE"
